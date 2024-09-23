@@ -1,0 +1,7 @@
+{
+    "attributes": {
+        "time": "int",
+        "flapLeft": "float",
+        "flapRight": "float"
+    }
+}

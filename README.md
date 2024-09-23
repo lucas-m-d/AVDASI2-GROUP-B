@@ -1,7 +1,8 @@
 # AVDASI2-GROUP-B
  
-for the UI to run:
-download node.js
-open a command prompt in the gcs-ui directory
-run ```npm i; npm run start```
-it should work
+gcs-ui -> ground control system
+TMS -> get data from the thing
+RCS -> control requests from the GCS
+
+
+gcs -> interface between TMS using Flask
