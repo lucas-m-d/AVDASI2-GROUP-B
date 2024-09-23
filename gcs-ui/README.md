@@ -13,6 +13,7 @@ parameters as required by the Company to meet deliverables.
 How to install?
 
 You need to download node.js on your computer
+
 Go into the /gcs-ui directory and then type:
 ```
 npm i;
