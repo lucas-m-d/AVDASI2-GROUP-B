@@ -138,13 +138,6 @@ export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps)
         }
     })
 
-    useEffect(() => {
-            console.log("TIME 1", Date.now())
-            fetch("http://127.0.0.1:5000/data").then((res) => {console.log(res);console.log("TIME 2", Date.now())}).catch((err) => console.log(err))
-            
-
-    }, [])
-
     return (
     <div>
         <p>Roll: {(roll * 180/Math.PI).toFixed(2)} deg</p>

@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import reportWebVitals from './reportWebVitals';
-import TestArtificialHorizon from './artificialHorizon/testArtificialHorizon';
-import { FlapControl } from './flightControlSurfaces/flaps/FlapControl';
+import TestArtificialHorizon from './ui/artificialHorizon/testArtificialHorizon';
+import { FlapControl } from './ui/flightControlSurfaces/flaps/FlapControl';
 import Grid from "@mui/material/Grid2"
+import { connectWebSocket, closeWebSocket } from './connection/connection';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
-
-
+connectWebSocket("ws://localhost:8000")
 root.render(
   <React.StrictMode>
     <Grid container spacing={1}>
