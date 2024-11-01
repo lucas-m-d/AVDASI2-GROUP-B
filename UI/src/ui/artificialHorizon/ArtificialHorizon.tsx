@@ -34,6 +34,7 @@ export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps)
     }
 
     useEffect(() => {
+        // testing port here
         
         const canvas = canvasRef.current
         if (canvas) {

@@ -8,6 +8,8 @@ import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import FlapIndicator from './FlapIndicator';
 import testFlapIndicator from './testFlapIndicator';
+import { getLatestData } from '../../../connection/connection';
+import sendFlapRequest from '../../../connection/request/sendFlapRequest';
 
 interface flapPosition {
     value: number,
@@ -54,16 +56,19 @@ export function FlapControl() {
         setCommandedFlap(customFlapInputValue)
     }
     
-    useEffect(() => {
-        // ON CHANGING A SETTING DO THIS
-    }, [currentFlap])
 
-    // THE FOLLOWING IS for debugging ONLY
+    // handle flap command
     useEffect(() => {
-        testFlapIndicator(commandedFlap, currentFlap).then((val) => {
-            val && setCurrentFlap(val)
-        });
-    },[commandedFlap])
+        sendFlapRequest(commandedFlap)
+    }, [commandedFlap])
+
+    // // THE FOLLOWING IS for debugging ONLY
+    // useEffect(() => {
+
+    //     testFlapIndicator(commandedFlap, currentFlap).then((val) => {
+    //         val && setCurrentFlap(val)
+    //     });
+    // },[commandedFlap])
 
     useEffect(() => {
         setCurrentFlap([0,0])
