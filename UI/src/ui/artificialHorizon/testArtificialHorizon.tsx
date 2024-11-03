@@ -1,6 +1,8 @@
 import React, {useState, useEffect} from 'react';
 import ArtificialHorizon from './ArtificialHorizon';
 
+// this code was done in chatgpt - its purpose is just to test the horizontal horizon
+// so won't be used in production
 
 export default function TestArtificialHorizon () {
     const [roll, setRoll] = useState(0);   // Roll state

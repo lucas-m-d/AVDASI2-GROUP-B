@@ -12,6 +12,8 @@ const AHStyles =
         pitchLineResolution:2.5, // degrees between each line
         pitchRange:15, //+- current theta
         loadPitch:180,
+        noDataFont: "30px Arial",
+        noDataColor: "red"
     }
 
 interface ArtificialHorizonProps {
@@ -139,7 +141,12 @@ export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps)
                 // arc to show current angle
                 context.beginPath()
                 //context.strokeStyle = "white"
-                context.arc(width*0.5, bankIndicator.height, bankIndicator.radius, -bankIndicator.angleRange - Math.PI/2, bankIndicator.angleRange - Math.PI/2  )
+                context.arc(width*0.5, bankIndicator.height, bankIndicator.radius, -bankIndicator.angleRange - Math.PI/2, bankIndicator.angleRange - Math.PI/2  );
+            
+                // IF NO DATA AVAILABLE
+                context.font = AHStyles.noDataFont;
+                context.fillStyle = AHStyles.noDataColor;           
+                (roll == undefined|| pitch == undefined ) && context.fillText("NO DATA\nAVAILABLE", 0, bankIndicator.height/2)
                 
                 context.stroke()
                 context.save()

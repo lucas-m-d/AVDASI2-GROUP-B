@@ -2,8 +2,6 @@ import asyncio
 import pymavlink
 import json
 import websockets
-from fetch.fetch import fetch
-from requests.handler import handler
 from cubeconnection.CubeConnection import CubeConnection
 PORT = 8000
 
@@ -16,11 +14,10 @@ async def websocket_loop(websocket, path):
     """Main handler for each connected client."""
     # Create a task to send messages continuously
     send_task = asyncio.create_task(con.fetch(websocket))
-    #send_task_2 = asyncio.create_task(fetch(websocket))
     
     try:
         async for message in websocket:
-            await handler(message)  # Handle incoming requests
+            await con.handle(message)  # Handle incoming requests
 
     except websockets.ConnectionClosed:
         print("Connection closed")
