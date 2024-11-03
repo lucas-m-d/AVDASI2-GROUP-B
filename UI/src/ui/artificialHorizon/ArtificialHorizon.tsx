@@ -15,15 +15,15 @@ const AHStyles =
     }
 
 interface ArtificialHorizonProps {
-    roll: number,
-    pitch: number
+    roll: number | undefined | null,
+    pitch: number | undefined | null
 }
 
 export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const width = window.innerWidth/3 - 15
     const height = width
-    var roll = roll * Math.PI/180;
+    //var roll = roll * Math.PI/180;
     const barPadding = [0.42, 0.35, 0.275]
     const midTriangleWidth = 80
     const midTriangleHeight = 25
@@ -40,14 +40,23 @@ export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps)
         if (canvas) {
             const context = canvas?.getContext("2d")
             if (context){
-                
-                
+                var displayRoll: number = 0;
+                if (roll != undefined){
+                    displayRoll = roll!
+                }
+
+                var displayPitch: number = 0;
+                if (pitch != undefined){
+                    displayPitch = pitch!
+                }
+
+
                 context.clearRect(0, 0, width, height);
                 
                 const yValuePerDegree = 0.5 * height / AHStyles.pitchRange
-                const pitchY = pitch * yValuePerDegree
+                const pitchY = displayPitch * yValuePerDegree
                 context.translate(width / 2, height / 2);
-                context.transform(Math.cos(roll), -Math.sin(roll), Math.sin(roll), Math.cos(roll), 0, 0)
+                context.transform(Math.cos(displayRoll), -Math.sin(displayRoll), Math.sin(displayRoll), Math.cos(displayRoll), 0, 0)
                 context.translate(-width / 2, -height / 2 + pitchY);
                 
                 const maxRotation =  4*Math.sqrt(width **2 + height **2);
@@ -66,10 +75,10 @@ export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps)
                 context.strokeStyle = AHStyles.midLine
                 context.font = "16px serif"
                               
-                for (let alpha = Math.ceil((pitch+AHStyles.pitchRange)/AHStyles.pitchLineResolution) * AHStyles.pitchLineResolution; 
-                    alpha >= pitch - AHStyles.pitchRange;
+                for (let alpha = Math.ceil((displayPitch+AHStyles.pitchRange)/AHStyles.pitchLineResolution) * AHStyles.pitchLineResolution; 
+                    alpha >= displayPitch - AHStyles.pitchRange;
                     alpha -= AHStyles.pitchLineResolution) {
-                        let y = yValuePerDegree * (pitch-alpha) + height/2 ;
+                        let y = yValuePerDegree * (displayPitch-alpha) + height/2 ;
                         if (alpha == 0) {
                             context.moveTo(width*-0.5, y)
                             context.lineTo(width*1.5, y)
@@ -140,9 +149,17 @@ export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps)
 
     return (
     <div>
-        <p>Roll: {(roll * 180/Math.PI).toFixed(2)} deg</p>
-        <p>Pitch: {pitch.toFixed(2)} deg</p>
-
+        {roll !== undefined ? (
+                <p>Roll: {(roll! * 180 / Math.PI).toFixed(2)} deg</p>
+            ) : (
+                <p>No roll data available</p>
+            )}
+            
+            {pitch !== undefined ? (
+                <p>Pitch: {pitch!.toFixed(2)} deg</p>
+            ) : (
+                <p>No pitch data available</p>
+        )}
         <canvas id="gcs-artificial-horizon" ref={canvasRef} width={width} height={height} />
     </div>
 )

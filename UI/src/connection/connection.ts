@@ -1,9 +1,10 @@
 
 type DroneData = {
-    altitude: number | null;
-    speed: number | null;
-    battery: number | null
+    roll: number | null;
+    pitch: number | null;
+    time_boot_ms: number | null
 };
+///// lots of this was done in chatgpt
 
 export let socket: WebSocket | null = null;
 let latestData: DroneData | null = null;
