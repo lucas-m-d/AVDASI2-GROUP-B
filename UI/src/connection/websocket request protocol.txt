@@ -1,0 +1,29 @@
+In order to send a request from the UI to the TMS we use a protocol called websockets.
+
+Think of a websocket as a way of sending messages in 2 directions.
+
+The TMS sends data to the UI which looks like this
+
+{
+    "time_boot_ms" : integer
+    "roll" : float between -2pi and + 2pi,
+    "pitch" : float between -2pi and + 2pi,
+    "yaw" : float between -2pi and + 2pi
+    // will need somebody to come up with a full list   
+}
+
+in CubeConnection.py, this is the function "fetch" (as it fetches data from the cubepilot and passes it on to the UI)
+
+
+When you click a button in the UI, it calls its respective request function.
+
+For instance, the flap UI page triggers the sendFlapRequest(flapAngle) function.
+This sends a websocket to the TMS which looks like this:
+
+{
+    "flap":number
+    // add more later
+}
+
+We're yet to figure out how the flap servo etc. will work with the cubepilot.
+
