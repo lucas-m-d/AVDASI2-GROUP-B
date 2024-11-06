@@ -59,7 +59,7 @@ class CubeConnection:
         print("requested angle:", angle)
         pass
 
-    async def fetch(self, websocket):
+    async def update(self, websocket):
         '''take returned data from updateStatus and then send to the websocket'''
         while True:
             data = self._updateStatus()

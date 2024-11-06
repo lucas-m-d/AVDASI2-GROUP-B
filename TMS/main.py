@@ -13,7 +13,7 @@ print("here")
 async def websocket_loop(websocket, path):
     """Main handler for each connected client."""
     # Create a task to send messages continuously
-    send_task = asyncio.create_task(con.fetch(websocket))
+    send_task = asyncio.create_task(con.update(websocket))
     
     try:
         async for message in websocket:
