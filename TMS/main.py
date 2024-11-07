@@ -3,11 +3,11 @@ import pymavlink
 import json
 import websockets
 from cubeconnection.CubeConnection import CubeConnection
-PORT = 8000
+PORT = 8001
 
-con = CubeConnection('tcpin:localhost:14553', testing=True)
+con = CubeConnection('com8', testing=False)
 
-print("here")
+
 
 
 async def websocket_loop(websocket, path):

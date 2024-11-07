@@ -9,14 +9,17 @@ import ArtificialHorizon from './ui/artificialHorizon/ArtificialHorizon';
 
 export default function App () {
     
-    connectWebSocket("ws://localhost:8000")
-    
+
+    connectWebSocket("ws://localhost:8001")
     const [data, setData] = useState(getLatestData())
+
     const refreshRate=1/20
     setInterval(() => {
         setData(getLatestData())
     }, refreshRate)
     const testing = false;
+
+    
 
     
     return (

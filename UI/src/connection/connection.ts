@@ -1,4 +1,4 @@
-
+import sendFlapRequest from "./request/sendFlapRequest";
 type DroneData = {
     roll: number | null;
     pitch: number | null;
@@ -18,6 +18,7 @@ const connectWebSocket = (url: string) => {
 
     socket.onmessage = (event: MessageEvent) => {
         latestData = JSON.parse(event.data); // Store the latest data received
+        sendFlapRequest(3)
     };
 
     socket.onclose = () => {
