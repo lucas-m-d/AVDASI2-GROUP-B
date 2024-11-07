@@ -5,7 +5,7 @@ import websockets
 from cubeconnection.CubeConnection import CubeConnection
 PORT = 8001
 
-con = CubeConnection('com8', testing=False)
+con = CubeConnection('com8', testing=True)
 
 
 

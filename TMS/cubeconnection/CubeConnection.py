@@ -13,10 +13,10 @@ class CubeConnection:
 
         self.req_data = ["ATTITUDE"]
 
-        self.inputs = ["flaps"]
-
         self.testing = testing
-        self.refresh = 1/3;       
+        self.refresh = 1/3
+
+        self._latest_message_ID = 0       
 
         # set up a connection here to the cubepilot
         if not testing:
@@ -27,11 +27,18 @@ class CubeConnection:
             #self.connection.system_time_send()
             ## init a bunch of stuff
 
+            #### configure cubepilot here
+
+            self.flap_pins = [10]
+
         else:
             print("testing data")
             
         self.time = time.time()
        
+    def _getLatestMessageID(self):
+        self._latest_message_ID += 1
+        return self._latest_message_ID - 1
 
     def _testingGenerateData(self):
         data = {
@@ -45,9 +52,10 @@ class CubeConnection:
     def _updateStatus(self): # check whether needs to be asynchronous
         '''Function to continually update data and return the data'''
         '''May not even need'''
-
-        data = self.connection.recv_match(type="ATTITUDE", blocking=True).to_dict()
-        # if not self.testing:
+        
+        if not self.testing:
+            data = self.connection.recv_match(type="ATTITUDE", blocking=True).to_dict()
+        
         #     for i in self.req_data:
         #         data.append(self.connection.recv_match(type=i, blocking=True).to_dict()) ## perhaps use a dictionary to get required most recent values from self.connection.messages
         if self.testing:
@@ -64,20 +72,29 @@ class CubeConnection:
     
     def _sendFlapRequest(self, angle): ##todo
         print("requested angle:", angle)
+        servo_max_pos = 90
+        pwm_command = 1000 + (angle * 1000 / servo_max_pos)
 
-        self.connection.mav.command_long_send(
-        self.connection.target_system,
-        self.connection.target_component,
-            mavutil.mavlink.MAV_CMD_DO_SET_SERVO,
-            1,
-            10,
-            (1000 + angle * 1000 / 360 ),
-            0,
-            0,
-            0,
-            0,
-            0
-    )
+        if not self.testing:
+            try:
+                for pin in self.flap_pins:
+                    self.connection.mav.command_long_send(
+                    self.connection.target_system,
+                    self.connection.target_component,
+                        mavutil.mavlink.MAV_CMD_DO_SET_SERVO,
+                        self._getLatestMessageID,
+                        pin,
+                        (1000 + angle * 1000 / 360 ),
+                        0,
+                        0,
+                        0,
+                        0,
+                        0
+                    )
+                    
+                    
+            except:
+                print("error sending flap request message")
         pass
 
     async def update(self, websocket):
@@ -90,9 +107,9 @@ class CubeConnection:
             await asyncio.sleep(self.refresh) ## do we need this?
 
     async def handle(self, message):
-        print(message)
-        if 'flaps' in message:
-            self._sendFlapRequest(message['flaps'])
+        msg = json.loads(message)
+        if 'flap' in msg:
+            self._sendFlapRequest(msg['flap'])
     
 
             

@@ -5,12 +5,12 @@ import { FlapControl } from './ui/flightControlSurfaces/flaps/FlapControl';
 import Grid from "@mui/material/Grid2"
 import { connectWebSocket, closeWebSocket, getLatestData } from './connection/connection';
 import ArtificialHorizon from './ui/artificialHorizon/ArtificialHorizon';
+import AttitudeGraph from './ui/dataHistory/AttitudeGraph';
 
+connectWebSocket("ws://localhost:8001")
 
 export default function App () {
     
-
-    connectWebSocket("ws://localhost:8001")
     const [data, setData] = useState(getLatestData())
 
     const refreshRate=1/20
@@ -20,8 +20,7 @@ export default function App () {
     const testing = false;
 
     
-
-    
+       
     return (
         <Grid container spacing={1}>
             <Grid size={6}>
@@ -35,7 +34,7 @@ export default function App () {
             <FlapControl />
             </Grid>
             <Grid size={3}>
-                
+                <AttitudeGraph />
             </Grid>
         </Grid>
     )
