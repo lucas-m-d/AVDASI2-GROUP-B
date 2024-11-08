@@ -14,7 +14,7 @@ class CubeConnection:
         self.req_data = ["ATTITUDE"]
 
         self.testing = testing
-        self.refresh = 1/3
+        self.refresh = 1/5
 
         self._latest_message_ID = 0       
 
@@ -73,28 +73,29 @@ class CubeConnection:
     def _sendFlapRequest(self, angle): ##todo
         print("requested angle:", angle)
         servo_max_pos = 90
-        pwm_command = 1000 + (angle * 1000 / servo_max_pos)
-
+        pwm_command = 1000 + (angle * 2000 / servo_max_pos)
+        print(pwm_command)
         if not self.testing:
             try:
-                for pin in self.flap_pins:
-                    self.connection.mav.command_long_send(
+                    
+                self.connection.mav.command_long_send(
                     self.connection.target_system,
                     self.connection.target_component,
                         mavutil.mavlink.MAV_CMD_DO_SET_SERVO,
-                        self._getLatestMessageID,
-                        pin,
-                        (1000 + angle * 1000 / 360 ),
+                        1,
+                        10,
+                        (pwm_command),
                         0,
                         0,
                         0,
                         0,
                         0
-                    )
+                )
+                print("pwn_command")   
                     
-                    
-            except:
+            except Exception as e:
                 print("error sending flap request message")
+                print(e)
         pass
 
     async def update(self, websocket):
@@ -109,7 +110,7 @@ class CubeConnection:
     async def handle(self, message):
         msg = json.loads(message)
         if 'flap' in msg:
-            self._sendFlapRequest(msg['flap'])
+            self._sendFlapRequest(int(msg['flap']))
     
 
             

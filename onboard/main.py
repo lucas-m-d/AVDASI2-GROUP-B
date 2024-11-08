@@ -2,6 +2,8 @@ from pymavlink import mavutil
 
 from pymavlink.dialects.v20 import common
 
+import time
+
 PORT = 'COM8'
 
 con = mavutil.mavlink_connection("com8")
@@ -28,6 +30,7 @@ con.mav.command_long_send(
     0,
     0
 )
+
 
 
 
