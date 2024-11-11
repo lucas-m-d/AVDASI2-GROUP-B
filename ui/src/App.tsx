@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 
 import TestArtificialHorizon from './ui/artificialHorizon/testArtificialHorizon';
 import { FlapControl } from './ui/flightControlSurfaces/flaps/FlapControl';
+import AutopilotPanel from './ui/autopilotPanel/AutopilotPanel';
 import Grid from "@mui/material/Grid2"
-import { connectWebSocket, closeWebSocket, getLatestData, getDataRate, latestData } from './connection/connection';
+import { connectWebSocket, closeWebSocket, getLatestData, getDataRate, latestData, getDelay } from './connection/connection';
 import ArtificialHorizon from './ui/artificialHorizon/ArtificialHorizon';
-import AttitudeGraph from './ui/dataHistory/AttitudeGraph';
 
 connectWebSocket("ws://localhost:8001")
 
@@ -13,7 +13,7 @@ export default function App () {
     
     const [data, setData] = useState(getLatestData())
 
-    const refreshRate=1000/4
+    const refreshRate=1000/20
     
     useEffect(() => {
         const intervalId = setInterval(() => {
@@ -31,15 +31,19 @@ export default function App () {
        
     return (
         <Grid container spacing={1}>
+            <Grid size={12}>
+                <AutopilotPanel />
+            </Grid>
+
             <Grid size={6}>
 
-            {testing
-                ? <TestArtificialHorizon />
-                : <ArtificialHorizon roll={data?.roll} pitch={data?.pitch} />
-        }
+                {testing
+                    ? <TestArtificialHorizon />
+                    : <ArtificialHorizon roll={data?.roll} pitch={data?.pitch} />
+                }
             </Grid>
             <Grid size={3}>
-            <FlapControl />
+                <FlapControl />
             </Grid>
             <Grid size={3}>
                 <p>
@@ -47,6 +51,10 @@ export default function App () {
                     {dr.current[0]}
                     Data time:
                     {dr.current[1]}
+                </p>
+                <p>
+                    Delay:
+                    {getDelay()}
                 </p>
             </Grid>
         </Grid>
