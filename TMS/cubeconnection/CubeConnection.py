@@ -20,15 +20,18 @@ class CubeConnection:
 
         # set up a connection here to the cubepilot
         if not testing:
-            self.connection = mavutil.mavlink_connection(connection_string)
+            self.connection = mavutil.mavlink_connection(connection_string, baud=921600)
             print("connecting...")
-            self.connection.wait_heartbeat()
+
+            
+            #self.connection.wait_heartbeat()
             print("Connection: Heartbeat from system (system %u component %u)" % (self.connection.target_system, self.connection.target_component))
+
             #self.connection.system_time_send()
             ## init a bunch of stuff
 
             #### configure cubepilot here
-
+            #### code has gone missing !!!!!!!
             self.flap_pins = [10]
 
         else:
@@ -49,12 +52,11 @@ class CubeConnection:
         }
         return data
 
-    def _updateStatus(self): # check whether needs to be asynchronous
+    def _updateStatus(self): 
         '''Function to continually update data and return the data'''
-        '''May not even need'''
         
         if not self.testing:
-            data = self.connection.recv_match(type="ATTITUDE", blocking=True).to_dict()
+            data = self.connection.recv_match(type="ATTITUDE", blocking=True).to_dict() # get attitude info
         
         #     for i in self.req_data:
         #         data.append(self.connection.recv_match(type=i, blocking=True).to_dict()) ## perhaps use a dictionary to get required most recent values from self.connection.messages
@@ -108,6 +110,7 @@ class CubeConnection:
             await asyncio.sleep(self.refresh) ## do we need this?
 
     async def handle(self, message):
+        '''deal with incoming messages from the websocket'''
         msg = json.loads(message)
         if 'flap' in msg:
             self._sendFlapRequest(int(msg['flap']))

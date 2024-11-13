@@ -4,7 +4,7 @@ import TestArtificialHorizon from './ui/artificialHorizon/testArtificialHorizon'
 import { FlapControl } from './ui/flightControlSurfaces/flaps/FlapControl';
 import AutopilotPanel from './ui/autopilotPanel/AutopilotPanel';
 import Grid from "@mui/material/Grid2"
-import { connectWebSocket, closeWebSocket, getLatestData, getDataRate, latestData, getDelay } from './connection/connection';
+import { connectWebSocket, closeWebSocket, getLatestData, getDataRate, latestData, } from './connection/connection';
 import ArtificialHorizon from './ui/artificialHorizon/ArtificialHorizon';
 
 connectWebSocket("ws://localhost:8001")
@@ -53,8 +53,7 @@ export default function App () {
                     {dr.current[1]}
                 </p>
                 <p>
-                    Delay:
-                    {getDelay()}
+                   
                 </p>
             </Grid>
         </Grid>
