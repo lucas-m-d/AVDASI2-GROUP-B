@@ -6,6 +6,7 @@ import AutopilotPanel from './ui/autopilotPanel/AutopilotPanel';
 import Grid from "@mui/material/Grid2"
 import { connectWebSocket, closeWebSocket, getLatestData, getDataRate, latestData, } from './connection/connection';
 import ArtificialHorizon from './ui/artificialHorizon/ArtificialHorizon';
+import ArmButton from './ui/arm/ArmButton';
 
 connectWebSocket("ws://localhost:8001")
 
@@ -55,6 +56,9 @@ export default function App () {
                 <p>
                    
                 </p>
+            </Grid>
+            <Grid size={12} >
+                <ArmButton />
             </Grid>
         </Grid>
     )

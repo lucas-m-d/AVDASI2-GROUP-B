@@ -14,24 +14,44 @@ class CubeConnection:
         self.req_data = ["ATTITUDE"]
 
         self.testing = testing
-        self.refresh = 1/5
-
+        self.refresh = 1/10
+        
         self._latest_message_ID = 0       
 
         # set up a connection here to the cubepilot
         if not testing:
-            self.connection = mavutil.mavlink_connection(connection_string, baud=921600)
+            self.connection = mavutil.mavlink_connection(connection_string, baud=111100)
             print("connecting...")
 
             
             #self.connection.wait_heartbeat()
+            self.connection.wait_heartbeat()
             print("Connection: Heartbeat from system (system %u component %u)" % (self.connection.target_system, self.connection.target_component))
 
             #self.connection.system_time_send()
             ## init a bunch of stuff
-
+            print(self.connection.recv_match(type="ATTITUDE", blocking=True).to_dict())
             #### configure cubepilot here
             #### code has gone missing !!!!!!!
+
+            ## send attitude data at refresh rate
+            self.connection.mav.command_long_send(
+                self.connection.target_system,
+                self.connection.target_component,
+                mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
+                1,
+                self.refresh,
+                30,
+                0,0,0,0,0
+            )
+            ## dismarm everything on load
+            self.connection.mav.command_long_send(
+                self.connection.target_system,
+                self.connection.target_component,
+                mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+                0,
+                1, 0, 0, 0, 0, 0, 0)
+            
             self.flap_pins = [10]
 
         else:
@@ -52,7 +72,7 @@ class CubeConnection:
         }
         return data
 
-    def _updateStatus(self): 
+    async def _updateStatus(self): 
         '''Function to continually update data and return the data'''
         
         if not self.testing:
@@ -79,7 +99,7 @@ class CubeConnection:
         print(pwm_command)
         if not self.testing:
             try:
-                    
+                
                 self.connection.mav.command_long_send(
                     self.connection.target_system,
                     self.connection.target_component,
@@ -99,21 +119,42 @@ class CubeConnection:
                 print("error sending flap request message")
                 print(e)
         pass
+    
+    def _sendArmRequest(self, arm):
+        req = 0
+        if arm:
+            req = 1
+        try:
+            self.connection.mav.command_long_send(
+                self.connection.target_system,
+                self.connection.target_component,
+                mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+                self._getLatestMessageID(),
+            req, 0, 0, 0, 0, 0, 0)
+
+                
+        except Exception as e:
+            print("error sending arm request message")
+            print(e)
 
     async def update(self, websocket):
         '''take returned data from updateStatus and then send to the websocket'''
         while True:
             #print("updating... ")
-            data = self._updateStatus()
+            data = await self._updateStatus()
             #print(data)
             await websocket.send(json.dumps(data))
-            await asyncio.sleep(self.refresh) ## do we need this?
+            await asyncio.sleep(self.refresh/2) ## do we need this?
 
     async def handle(self, message):
         '''deal with incoming messages from the websocket'''
         msg = json.loads(message)
+        print(msg)
         if 'flap' in msg:
             self._sendFlapRequest(int(msg['flap']))
+        if 'arm' in msg:
+            self._sendArmRequest(bool(msg['arm']))
+
     
 
             

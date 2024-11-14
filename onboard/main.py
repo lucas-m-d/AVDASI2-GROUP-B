@@ -23,7 +23,7 @@ con.mav.command_long_send(
     mavutil.mavlink.MAV_CMD_DO_SET_SERVO,
     1,
     10,
-    1000,
+    3000,
     0,
     0,
     0,

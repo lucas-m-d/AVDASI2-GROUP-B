@@ -5,10 +5,10 @@ import websockets
 from cubeconnection.CubeConnection import CubeConnection
 PORT = 8001
 
-con = CubeConnection('udpin:localhost:14550', testing=True)
+con = CubeConnection('udp:0.0.0.0:14550', testing=False) ## connection string on left - can change
 
 
-
+##### todo: make it send a websocket on heartbeat received
 
 async def websocket_loop(websocket, path):
     """Main handler for each connected client."""

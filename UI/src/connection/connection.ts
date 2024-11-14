@@ -14,7 +14,7 @@ var n = 0;
 
 const connectWebSocket = (url: string) => {
     socket = new WebSocket(url);
-
+    
     socket.onopen = () => {
         console.log("WebSocket connected");
     };

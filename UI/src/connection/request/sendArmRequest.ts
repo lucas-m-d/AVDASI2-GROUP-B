@@ -2,14 +2,15 @@ import { socket } from '../connection';
 
 interface FlapRequestType {
     type: string,
-    flap: number
+    arm: boolean
 }
 
-export default function sendFlapRequest(val: number | undefined){
+export default function sendArmRequest(val: boolean | undefined){
     if (socket) {
+        console.log("here")
         const request: FlapRequestType = {
             type: "request",
-            flap: val!
+            arm: val!
         };
         (socket.readyState == socket.OPEN) ? socket.send(JSON.stringify(request)) : console.log("no socket connection")
     }
