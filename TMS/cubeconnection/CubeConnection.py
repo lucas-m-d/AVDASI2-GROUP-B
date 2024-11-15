@@ -4,6 +4,12 @@ import time
 import math
 import asyncio
 import json
+from enum import Enum
+
+class FlightMode(Enum):
+    
+    MANUAL = 0
+    STABILISE = 2
 
 class CubeConnection:
     def __init__(self, connection_string, testing=False):
@@ -54,6 +60,15 @@ class CubeConnection:
             
             self.flap_pins = [10]
 
+            ## rc control
+            self.connection.mav.command_long_send(
+                self.connection.target_system,
+                self.connection.target_component,
+                mavutil.mavlink.MAV_CMD_DO_SET_MODE,
+                0,
+                FlightMode.MANUAL.value,     ## manual=0, stabilize=2
+                0, 0, 0, 0, 0, 0)
+            self.send_rc_override([1500, 1500, 1500, 1500, 0,0,0,0])
         else:
             print("testing data")
             
@@ -77,7 +92,49 @@ class CubeConnection:
         
         if not self.testing:
             data = self.connection.recv_match(type="ATTITUDE", blocking=True).to_dict() # get attitude info
-        
+            data2 = self.connection.recv_match(type="HEARTBEAT", blocking=True).to_dict()
+        print(data2["custom_mode"])
+    def _set_mode(self, mode):
+        """
+        Set the flight mode of the Cube.
+        :param mode: FlightMode Enum (e.g., FlightMode.MANUAL or FlightMode.STABILISE)
+        """
+        try:
+            self.connection.mav.command_long_send(
+                self.connection.target_system,
+                self.connection.target_component,
+                mavutil.mavlink.MAV_CMD_DO_SET_MODE,
+                0,
+                mode.value,
+                0, 0, 0, 0, 0, 0
+            )
+            print(f"Flight mode set to {mode.name}")
+        except Exception as e:
+            print("Error setting flight mode:", e)
+
+    def send_rc_override(self, channels):
+        """
+        Send MAVLink RC_OVERRIDE commands to override RC inputs.
+        :param channels: List of 8 channel values (e.g., [1500, 1500, 1500, 1500, 0, 0, 0, 0])
+        """
+        try:
+            self.connection.mav.rc_channels_override_send(
+                self.connection.target_system,
+                self.connection.target_component,
+                *channels
+            )
+            print("RC_OVERRIDE sent:", channels)
+        except Exception as e:
+            print("Error sending RC_OVERRIDE:", e)
+
+    def clear_rc_override(self):
+        """
+        Clear MAVLink RC_OVERRIDE to revert control to the RC transmitter.
+        """
+        self.send_rc_override([0, 0, 0, 0, 0, 0, 0, 0])
+        print("RC_OVERRIDE cleared.")
+
+
         #     for i in self.req_data:
         #         data.append(self.connection.recv_match(type=i, blocking=True).to_dict()) ## perhaps use a dictionary to get required most recent values from self.connection.messages
         if self.testing:
@@ -149,11 +206,21 @@ class CubeConnection:
     async def handle(self, message):
         '''deal with incoming messages from the websocket'''
         msg = json.loads(message)
+        
         print(msg)
         if 'flap' in msg:
             self._sendFlapRequest(int(msg['flap']))
         if 'arm' in msg:
             self._sendArmRequest(bool(msg['arm']))
+        if 'override' in msg:
+            # Example: { "override": [1500, 1500, 1500, 1500, 0, 0, 0, 0] }
+            self.send_rc_override(msg['override'])
+        if 'clear_override' in msg:
+            self.clear_rc_override()
+        if 'mode' in msg:
+            # Example: { "mode": "MANUAL" }
+            mode = FlightMode[msg['mode'].upper()]
+            self.set_mode(mode)
 
     
 

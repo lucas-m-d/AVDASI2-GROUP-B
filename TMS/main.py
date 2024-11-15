@@ -2,12 +2,14 @@ import asyncio
 import pymavlink
 import json
 import websockets
-from cubeconnection.CubeConnection import CubeConnection
+from cubeconnection.CubeConnection import CubeConnection, FlightMode
 PORT = 8001
 
 con = CubeConnection('udp:0.0.0.0:14550', testing=False) ## connection string on left - can change
 
+con._set_mode(FlightMode.MANUAL)
 
+#print(con.connection.recv_match(type="HIGH_LATENCY2", blocking=True).to_dict())
 ##### todo: make it send a websocket on heartbeat received
 
 async def websocket_loop(websocket, path):

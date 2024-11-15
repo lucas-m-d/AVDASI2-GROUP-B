@@ -20,7 +20,8 @@
     "noEmit": false,
     "jsx": "react-jsx",
     "types": ["node"],
-    "outDir": "dist"
+    "outDir": "dist",
+    "noImplicitAny":false
   },
   "include": [
     "src"
