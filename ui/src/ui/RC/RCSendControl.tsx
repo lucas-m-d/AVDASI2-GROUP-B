@@ -29,7 +29,7 @@ export default function RCSendControl () {
                     />
                 </div>
             ))}
-            <Button onClick={handleSend}>Send</Button>
+            <Button variant="contained" onClick={handleSend}>Send</Button>
 
         </div>
     )

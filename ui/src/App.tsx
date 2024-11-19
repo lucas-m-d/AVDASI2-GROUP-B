@@ -4,10 +4,10 @@ import TestArtificialHorizon from './ui/artificialHorizon/testArtificialHorizon'
 import { FlapControl } from './ui/flightControlSurfaces/flaps/FlapControl';
 import AutopilotPanel from './ui/autopilotPanel/AutopilotPanel';
 import Grid from "@mui/material/Grid2"
-import { connectWebSocket, closeWebSocket, getLatestData, getDataRate, latestData, } from './connection/connection';
+import { connectWebSocket,  getLatestData, getDataRate, latestData, } from './connection/connection';
 import ArtificialHorizon from './ui/artificialHorizon/ArtificialHorizon';
 import ArmButton from './ui/arm/ArmButton';
-import RCModeButton from './ui/RC/RCModeButton';
+import {RCModeButton, RCWifiSwitch } from './ui/RC/RCModeButtons';
 import RCSendControl from './ui/RC/RCSendControl';
 
 connectWebSocket("ws://localhost:8001")
@@ -25,7 +25,7 @@ export default function App () {
         }, refreshRate);
 
         return () => clearInterval(intervalId); 
-    }, []);
+    }, [refreshRate]);
 
 
     const testing = false;
@@ -48,7 +48,7 @@ export default function App () {
             <Grid size={3}>
                 <FlapControl />
             </Grid>
-            <Grid size={3}>
+            <Grid size={1}>
                 <p>
                     Data rate:
                     {dr.current[0]}
@@ -59,16 +59,20 @@ export default function App () {
                    
                 </p>
             </Grid>
+            <Grid size={2}>
+                <RCSendControl />
+            </Grid>
             <Grid size={3} >
                 <ArmButton />
             </Grid>
-            <Grid size={9}>
+            <Grid size={3}>
                 <RCModeButton />
             </Grid>
-
-            <Grid>
-                <RCSendControl />
+            <Grid size={3}>
+                <RCWifiSwitch />
             </Grid>
+
+            
         </Grid>
     )
     
