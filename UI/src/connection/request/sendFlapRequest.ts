@@ -13,4 +13,4 @@ export default function sendFlapRequest(val: number | undefined){
         };
         (socket.readyState == socket.OPEN) ? socket.send(JSON.stringify(request)) : console.log("no socket connection")
     }
-}
+} 

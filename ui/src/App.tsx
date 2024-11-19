@@ -7,6 +7,8 @@ import Grid from "@mui/material/Grid2"
 import { connectWebSocket, closeWebSocket, getLatestData, getDataRate, latestData, } from './connection/connection';
 import ArtificialHorizon from './ui/artificialHorizon/ArtificialHorizon';
 import ArmButton from './ui/arm/ArmButton';
+import RCModeButton from './ui/RC/RCModeButton';
+import RCSendControl from './ui/RC/RCSendControl';
 
 connectWebSocket("ws://localhost:8001")
 
@@ -57,8 +59,15 @@ export default function App () {
                    
                 </p>
             </Grid>
-            <Grid size={12} >
+            <Grid size={3} >
                 <ArmButton />
+            </Grid>
+            <Grid size={9}>
+                <RCModeButton />
+            </Grid>
+
+            <Grid>
+                <RCSendControl />
             </Grid>
         </Grid>
     )

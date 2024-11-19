@@ -34,6 +34,7 @@ export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps)
         radius: width*0.5,
         angleRange: Math.PI/6
     }
+    pitch = (pitch) ? (pitch * 360 / (2 * Math.PI)) : pitch
 
     useEffect(() => {
         // testing port here
@@ -43,12 +44,12 @@ export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps)
             const context = canvas?.getContext("2d")
             if (context){
                 var displayRoll: number = 0;
-                if (roll != undefined){
+                if (roll !== undefined){
                     displayRoll = roll!
                 }
 
                 var displayPitch: number = 0;
-                if (pitch != undefined){
+                if (pitch !== undefined){
                     displayPitch = pitch!
                 }
 
@@ -81,7 +82,7 @@ export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps)
                     alpha >= displayPitch - AHStyles.pitchRange;
                     alpha -= AHStyles.pitchLineResolution) {
                         let y = yValuePerDegree * (displayPitch-alpha) + height/2 ;
-                        if (alpha == 0) {
+                        if (alpha === 0) {
                             context.moveTo(width*-0.5, y)
                             context.lineTo(width*1.5, y)
                             context.lineWidth = AHStyles.smallLineThickness
@@ -94,7 +95,7 @@ export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps)
                         context.moveTo(padding*width, y)
                         context.lineTo((1-padding)*width, y)
                         context.lineWidth = alpha%10 === 0 ? AHStyles.smallLineThickness : AHStyles.smallLineThickness*3/4;
-                        if (padding != barPadding[0]) {
+                        if (padding !==barPadding[0]) {
                             context.fillText(alpha.toString() + "°", (padding - 0.05)*width, y)
                             context.fillText(alpha.toString() + "°", (1-padding + 0.05)*width, y)
                             
@@ -146,7 +147,7 @@ export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps)
                 // IF NO DATA AVAILABLE
                 context.font = AHStyles.noDataFont;
                 context.fillStyle = AHStyles.noDataColor;           
-                (roll == undefined|| pitch == undefined ) && context.fillText("NO DATA\nAVAILABLE", 0, bankIndicator.height/2)
+                (roll === undefined|| pitch === undefined ) && context.fillText("NO DATA\nAVAILABLE", 0, bankIndicator.height/2)
                 
                 context.stroke()
                 context.save()

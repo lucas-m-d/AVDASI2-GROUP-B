@@ -7,7 +7,6 @@ import json
 from enum import Enum
 
 class FlightMode(Enum):
-    
     MANUAL = 0
     STABILISE = 2
 
@@ -21,12 +20,18 @@ class CubeConnection:
 
         self.testing = testing
         self.refresh = 1/10
-        
+        self.TIMEOUT = 30
         self._latest_message_ID = 0       
-
+        self.didTimeout = False
         # set up a connection here to the cubepilot
         if not testing:
-            self.connection = mavutil.mavlink_connection(connection_string, baud=111100)
+            try:
+                self.connection = mavutil.mavlink_connection(connection_string, baud=111100,udp_timeout=self.TIMEOUT)
+            except:
+                self.didTimeout = False
+                print("timed out")
+                return
+
             print("connecting...")
 
             
@@ -36,7 +41,6 @@ class CubeConnection:
 
             #self.connection.system_time_send()
             ## init a bunch of stuff
-            print(self.connection.recv_match(type="ATTITUDE", blocking=True).to_dict())
             #### configure cubepilot here
             #### code has gone missing !!!!!!!
 
@@ -93,7 +97,15 @@ class CubeConnection:
         if not self.testing:
             data = self.connection.recv_match(type="ATTITUDE", blocking=True).to_dict() # get attitude info
             data2 = self.connection.recv_match(type="HEARTBEAT", blocking=True).to_dict()
-        print(data2["custom_mode"])
+        
+        return {
+            "time_boot_ms":data["time_boot_ms"],
+            "roll":data["roll"],
+            "pitch":data["pitch"],
+            "yaw":data["yaw"]
+        }
+    
+
     def _set_mode(self, mode):
         """
         Set the flight mode of the Cube.
@@ -124,6 +136,7 @@ class CubeConnection:
                 *channels
             )
             print("RC_OVERRIDE sent:", channels)
+            return True
         except Exception as e:
             print("Error sending RC_OVERRIDE:", e)
 
@@ -131,8 +144,8 @@ class CubeConnection:
         """
         Clear MAVLink RC_OVERRIDE to revert control to the RC transmitter.
         """
-        self.send_rc_override([0, 0, 0, 0, 0, 0, 0, 0])
-        print("RC_OVERRIDE cleared.")
+        if self.send_rc_override([0, 0, 0, 0, 0, 0, 0, 0]):
+            print("RC_OVERRIDE cleared.")
 
 
         #     for i in self.req_data:
@@ -141,13 +154,6 @@ class CubeConnection:
             data = self._testingGenerateData()
         #print(data)
 
-        
-        return {
-            "time_boot_ms":data["time_boot_ms"],
-            "roll":data["roll"],
-            "pitch": (data["pitch"]*180 / math.pi),
-            "yaw": data["yaw"]
-        }
     
     def _sendFlapRequest(self, angle): ##todo
         print("requested angle:", angle)
@@ -164,12 +170,9 @@ class CubeConnection:
                         1,
                         10,
                         (pwm_command),
-                        0,
-                        0,
-                        0,
-                        0,
-                        0
+                        0,0,0,0,0
                 )
+                
                 print("pwn_command")   
                     
             except Exception as e:
@@ -211,16 +214,24 @@ class CubeConnection:
         if 'flap' in msg:
             self._sendFlapRequest(int(msg['flap']))
         if 'arm' in msg:
+            print("arming")
             self._sendArmRequest(bool(msg['arm']))
         if 'override' in msg:
             # Example: { "override": [1500, 1500, 1500, 1500, 0, 0, 0, 0] }
+            print("overriding")
             self.send_rc_override(msg['override'])
         if 'clear_override' in msg:
+            print("clearing override")
             self.clear_rc_override()
         if 'mode' in msg:
+            print("changing mode")
             # Example: { "mode": "MANUAL" }
-            mode = FlightMode[msg['mode'].upper()]
-            self.set_mode(mode)
+            try:
+                mode = FlightMode[msg['mode'].upper()]
+                self._set_mode(mode)
+            except:
+                print("invalid flight mode for message %s", msg)
+            
 
     
 
