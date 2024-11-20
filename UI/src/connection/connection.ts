@@ -18,7 +18,7 @@ type DroneData = {
 
 
 export let socket: WebSocket | null = null;
-export let latestData: DroneData = <DroneData>{}; // drone data where everything is null
+export let latestData: DroneData = {} as DroneData; // drone data where everything is null
 export let dataHistory: Array<DroneData> = []
 const startTime = Date.now();
 var n = 0;
@@ -31,7 +31,8 @@ const connectWebSocket = (url: string) => {
     };
 
     socket.onmessage = (event: MessageEvent) => {
-        console.log("Message received")
+
+        
         var newData = JSON.parse(event.data);
         if (newData.type=="ATTITUDE"){
             latestData.time_boot_ms = newData.time_boot_ms
@@ -43,6 +44,10 @@ const connectWebSocket = (url: string) => {
             latestData.mode = newData.mode
         } else if (newData.type == "SERVO_OUTPUT_RAW") {
             latestData.flapRequestStatus = newData.flapRequested
+        } else if (newData.type == "ERROR"){
+            console.log(newData)
+        } else {
+            console.log(event.data)
         }
         //latestData = JSON.parse(event.data); // Store the latest data received
         n = n+1

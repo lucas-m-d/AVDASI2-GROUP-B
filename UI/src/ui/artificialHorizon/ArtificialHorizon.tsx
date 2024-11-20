@@ -17,8 +17,8 @@ const AHStyles =
     }
 
 interface ArtificialHorizonProps {
-    roll: number | undefined | null,
-    pitch: number | undefined | null
+    roll: number | undefined,
+    pitch: number | undefined
 }
 
 export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps) {
@@ -34,8 +34,8 @@ export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps)
         radius: width*0.5,
         angleRange: Math.PI/6
     }
-    pitch = (pitch) ? (pitch * 360 / (2 * Math.PI)) : pitch
-
+    
+    
     useEffect(() => {
         // testing port here
         
@@ -50,7 +50,7 @@ export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps)
 
                 var displayPitch: number = 0;
                 if (pitch !== undefined){
-                    displayPitch = pitch!
+                    displayPitch = (pitch! * 360 / (2 * Math.PI))
                 }
 
 
@@ -153,7 +153,7 @@ export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps)
                 context.save()
             }
         }
-    })
+    }, [roll, pitch])
 
     return (
     <div>

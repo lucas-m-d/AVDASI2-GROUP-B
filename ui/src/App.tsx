@@ -4,7 +4,7 @@ import TestArtificialHorizon from './ui/artificialHorizon/testArtificialHorizon'
 import { FlapControl } from './ui/flightControlSurfaces/flaps/FlapControl';
 import AutopilotPanel from './ui/autopilotPanel/AutopilotPanel';
 import Grid from "@mui/material/Grid2"
-import { connectWebSocket,  getLatestData, getDataRate, latestData, } from './connection/connection';
+import { connectWebSocket,  getDataRate, latestData } from './connection/connection';
 import ArtificialHorizon from './ui/artificialHorizon/ArtificialHorizon';
 import ArmButton from './ui/arm/ArmButton';
 import {RCModeButton, RCWifiSwitch } from './ui/RC/RCModeButtons';
@@ -14,18 +14,18 @@ connectWebSocket("ws://localhost:8001")
 
 export default function App () {
     
-    const [data, setData] = useState(getLatestData())
+    const [data, setData] = useState(latestData)
 
     const refreshRate=1000/20
     
     useEffect(() => {
         const intervalId = setInterval(() => {
-            setData(latestData);
+            setData({...latestData});
             
         }, refreshRate);
 
         return () => clearInterval(intervalId); 
-    }, [refreshRate]);
+    }, []);
 
 
     const testing = false;
@@ -42,7 +42,7 @@ export default function App () {
 
                 {testing
                     ? <TestArtificialHorizon />
-                    : <ArtificialHorizon roll={data?.roll} pitch={data?.pitch} />
+                    : <ArtificialHorizon roll={data.roll} pitch={data.pitch} />
                 }
             </Grid>
             <Grid size={3}>
