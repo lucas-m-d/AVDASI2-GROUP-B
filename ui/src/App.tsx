@@ -66,7 +66,7 @@ export default function App () {
                 <ArmButton />
             </Grid>
             <Grid size={3}>
-                <RCModeButton />
+                <RCModeButton mode={latestData.mode}/>
             </Grid>
             <Grid size={3}>
                 <RCWifiSwitch />

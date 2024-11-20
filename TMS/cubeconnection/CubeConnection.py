@@ -11,6 +11,8 @@ class FlightMode(Enum):
     STABILISE = 2
 
 class CubeConnection:
+
+    ## might be an idea to move all of the commands to a separate file, as it's making this class extremely long 
     def __init__(self, connection_string, testing=False):
         '''
         Required info from the mav
@@ -19,24 +21,24 @@ class CubeConnection:
         self.req_data = ["ATTITUDE"]
 
         self.testing = testing
-        self.refresh = 1/10
-        self.TIMEOUT = 30
+        self.refresh_attitude = 1/10
+        self.refresh_servo = 1/2
+        self.refresh_heartbeat = 1/4
+        self.TIMEOUT = 10
         self._latest_message_ID = 0       
-        self.didTimeout = False
+        print("establishing connection")
+        self.connection = mavutil.mavlink_connection(connection_string, baud=111100)
+        self.flap_pins = [10]
+        self.initialised = asyncio.Event()
         # set up a connection here to the cubepilot
-        if not testing:
-            try:
-                self.connection = mavutil.mavlink_connection(connection_string, baud=111100,udp_timeout=self.TIMEOUT)
-            except:
-                self.didTimeout = False
-                print("timed out")
-                return
-
-            print("connecting...")
-
+        
             
-            #self.connection.wait_heartbeat()
-            self.connection.wait_heartbeat()
+        self.time = time.time()
+
+    async def init(self):
+        if not self.testing:
+            print("waiting for heartbeat")
+            self.connection.wait_heartbeat(timeout=self.TIMEOUT)
             print("Connection: Heartbeat from system (system %u component %u)" % (self.connection.target_system, self.connection.target_component))
 
             #self.connection.system_time_send()
@@ -44,17 +46,7 @@ class CubeConnection:
             #### configure cubepilot here
             #### code has gone missing !!!!!!!
 
-            ## send attitude data at refresh rate
-            self.connection.mav.command_long_send(
-                self.connection.target_system,
-                self.connection.target_component,
-                mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
-                1,
-                self.refresh,
-                30,
-                0,0,0,0,0
-            )
-            ## dismarm everything on load
+            ## disarm everything on load
             self.connection.mav.command_long_send(
                 self.connection.target_system,
                 self.connection.target_component,
@@ -63,20 +55,19 @@ class CubeConnection:
                 1, 0, 0, 0, 0, 0, 0)
             
             self.flap_pins = [10]
-
-            ## rc control
-            self.connection.mav.command_long_send(
-                self.connection.target_system,
-                self.connection.target_component,
-                mavutil.mavlink.MAV_CMD_DO_SET_MODE,
-                0,
-                FlightMode.MANUAL.value,     ## manual=0, stabilize=2
-                0, 0, 0, 0, 0, 0)
-            self.send_rc_override([1500, 1500, 1500, 1500, 0,0,0,0])
+            self.initialised.set()
         else:
             print("testing data")
-            
-        self.time = time.time()
+
+    def changeDataRate(self, commandNum, rate):
+        self.connection.mav.command_long_send(
+                self.connection.target_system,
+                self.connection.target_component,
+                mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
+                self._getLatestMessageID(),
+                1, 
+                rate,
+                commandNum, 0, 0, 0, 0)
        
     def _getLatestMessageID(self):
         self._latest_message_ID += 1
@@ -105,7 +96,7 @@ class CubeConnection:
             "yaw":data["yaw"]
         }
     
-
+    
     def _set_mode(self, mode):
         """
         Set the flight mode of the Cube.
@@ -197,14 +188,60 @@ class CubeConnection:
             print("error sending arm request message")
             print(e)
 
+    
+
+    async def attitude_loop(self, websocket):
+        
+        '''Function to continually update attitude data and return it'''
+        while True:
+            if not self.testing:
+                data = self.connection.recv_match(type="ATTITUDE", blocking=True).to_dict() # get attitude info
+            data = {
+            "type":"ATTITUDE",
+            "time_boot_ms":data["time_boot_ms"],
+            "roll":data["roll"],
+            "pitch":data["pitch"],
+            "yaw":data["yaw"]
+            }
+            await websocket.send(json.dumps(data))
+            await asyncio.sleep(self.refresh_attitude/2)
+    
+    async def servo_loop(self, websocket):
+        '''Continually update flap request data
+        type="SERVO_OUTPUT_RAW"
+        '''
+        self.changeDataRate(36, self.refresh_servo)
+        while True:
+            if not self.testing:
+                data = self.connection.recv_match(type="SERVO_OUTPUT_RAW", blocking=True).to_dict()
+            data = {
+                "type":"SERVO_OUTPUT_RAW",
+                "flapRequested":data["servo10_raw"]
+            }
+
+            await websocket.send(json.dumps(data))
+            await asyncio.sleep(self.refresh_servo/2)
+
+    async def heartbeat_loop(self, websocket):
+        self.changeDataRate(0, self.refresh_heartbeat)
+        while True:
+            if not self.testing:
+                data = self.connection.recv_match(type="HEARTBEAT", blocking=True)
+            data = {
+                "type":"HEARTBEAT",
+                "mode":data["base_mode"],
+                "connected":True
+            }
+            await websocket.send(json.dumps(data))
+            await asyncio.sleep(self.refresh_heartbeat)
+    
+
     async def update(self, websocket):
         '''take returned data from updateStatus and then send to the websocket'''
-        while True:
-            #print("updating... ")
-            data = await self._updateStatus()
-            #print(data)
-            await websocket.send(json.dumps(data))
-            await asyncio.sleep(self.refresh/2) ## do we need this?
+        asyncio.create_task(self.attitude_loop(websocket))
+        asyncio.create_task(self.servo_loop(websocket))
+        asyncio.create_task(self.heartbeat_loop(websocket))
+
 
     async def handle(self, message):
         '''deal with incoming messages from the websocket'''
