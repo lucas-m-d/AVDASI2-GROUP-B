@@ -80,6 +80,6 @@ export default function FlapIndicator({min, max, request, position}:flapIndicato
         }
     })
     return (
-    <canvas id="gcs-artificial-horizon" ref={canvasRef} width={width} height={height} />
+        <canvas id="flap-indicator" ref={canvasRef} width={width} height={height} />
     )
 }

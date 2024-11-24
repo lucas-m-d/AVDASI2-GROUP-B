@@ -2,21 +2,30 @@ import {useState} from 'react';
 import { Button } from '@mui/material';
 import { sendRCModeRequest } from '../../connection/request/sendRCRequest';
 
-export function RCModeButton() {
-    // todo, make mode change on manual/stabilise on GCS
-    const [mode, setMode] = useState<"MANUAL" | "STABILISE">("MANUAL");
+interface RCModeButtonProps {
+    mode: "MANUAL" | "STABILISE" | undefined
+}
+
+export function RCModeButton({ mode }: RCModeButtonProps) {
     const handleChangeMode = () => {
-        setMode((mode === "MANUAL") ? "STABILISE" : "MANUAL")
-        sendRCModeRequest(mode)
-    }
+        if (mode !== undefined) {
+            const newMode = mode === "MANUAL" ? "STABILISE" : "MANUAL";
+            sendRCModeRequest(newMode);
+        }
+    };
 
     return (
         <div>
-            CURRENT AP MODE: {mode}
-
-            <Button variant="contained" onClick={handleChangeMode}>Set mode to {(mode === "MANUAL") ? "STABILISE" : "MANUAL"}</Button>
+            <p>CURRENT AP MODE: {mode || "UNKNOWN"}</p>
+            <Button
+                variant="contained"
+                onClick={handleChangeMode}
+                disabled={mode === undefined}
+            >
+                {`Set mode to ${mode === "MANUAL" ? "STABILISE" : "MANUAL"}`}
+            </Button>
         </div>
-    )
+    );
 }
 
 export function RCWifiSwitch() {

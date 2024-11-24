@@ -30,4 +30,22 @@ export function sendRCModeRequest(mode : "MANUAL" | "STABILISE"){
         (socket.readyState == socket.OPEN) ? socket.send(JSON.stringify(request)) : console.log("no socket connection")
     }
 } 
+export enum RCWifiControlTypes {
+    RC = "RC",
+    WiFi = "WiFi"
+}
+interface RCWiFiControlType {
+     type: string,
+     RCWiFiMode: RCWiFiControlType
+}
+
+// export function sendRCWifiSwitch(mode : RCWifiControlTypes) {
+//     if (socket) {
+//         const request: RCWiFiControlType = {
+//             type:"request",
+//             RCWiFiMode: mode
+//         }
+//         (socket.readyState == socket.OPEN) ? socket.send(JSON.stringify(request)) : console.log("no socket connection")
+//     }
+// }
 

@@ -22,8 +22,8 @@ export default function RCSendControl () {
                 <div key={i}>
                     Param {i + 1}
                     <NumberInput 
-                        min={0} 
-                        max={3000}
+                        min={1100} 
+                        max={1900}
                         value={controlValues[i]}
                         onChange={(_, val) => (updateControlValue(val, i))}
                     />
