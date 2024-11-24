@@ -5,8 +5,10 @@ import websockets
 from cubeconnection.CubeConnection import CubeConnection, FlightMode
 PORT = 8001
 CONSTR = 'udp:0.0.0.0:14550' # use this for UDP connection
-CONSTR = 'com6'
+#CONSTR = 'com6'
 TEST = False
+
+DISCONNECTED_MSG_INTERVAL = 2
 
 
 ##con = asyncio.create_task(CubeConnection(CONSTR, testing=TEST))
@@ -26,12 +28,12 @@ async def main():
     async def websocket_handler(websocket, path):
         """Main handler for each connected client."""
         while not con.initialised.is_set():
-            print("here")
+            
             await websocket.send(json.dumps({
                 "type":"ERROR",
                 "ERROR":0
             }))
-            await asyncio.sleep(2)
+            await asyncio.sleep(DISCONNECTED_MSG_INTERVAL)
             await con.init()
         
         con.update(websocket)

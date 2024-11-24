@@ -1,14 +1,13 @@
 import Box from '@mui/material/Box';
-import Slider, { SliderMark } from '@mui/material/Slider';
+import Slider from '@mui/material/Slider';
 import { Typography } from '@mui/material';
 //import Grid from "@mui/material/Grid2"
 import { NumberInput } from '../shared/numberInput';
-import React, { useState, useEffect} from 'react';
+import { useState, useEffect} from 'react';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import FlapIndicator from './FlapIndicator';
-import testFlapIndicator from './testFlapIndicator';
-import { getLatestData } from '../../../connection/connection';
+//import testFlapIndicator from './testFlapIndicator';
 import sendFlapRequest from '../../../connection/request/sendFlapRequest';
 
 interface flapPosition {
@@ -35,13 +34,17 @@ const flapSettings: flapPosition[] = [
     }
 ]
 
+interface FlapControlProps {
+    min : number,
+    max : number,
+    posArray : [number?, number?]
+}
 
-export function FlapControl() {
+export function FlapControl({min, max, posArray} : FlapControlProps) {
 
     const [commandedFlap, setCommandedFlap] = useState<number | undefined>(undefined)
     const [showFlap, setShowFlap] = useState<number>(commandedFlap ? commandedFlap : 0)
-    const [currentFlap, setCurrentFlap] = useState<[number?, number?]>([0,0])
-
+    
     const [customFlapInputValue, setCustomFlapInputValue] = useState<number>(0)
     // todo: require enter key and handle bad values
     
@@ -70,9 +73,7 @@ export function FlapControl() {
     //     });
     // },[commandedFlap])
 
-    useEffect(() => {
-        setCurrentFlap([0,0])
-    }, [])
+    
     /// THE ABOVE IS FOR DEBUGGING ONLY
 
     
@@ -118,7 +119,9 @@ export function FlapControl() {
                     </div>
                     <div>
                         <Typography variant="h6" align="center">FLAP GAUGES</Typography>
-                        <FlapIndicator min={0} max={flapSettings[flapSettings.length-1].value} request={commandedFlap} position={currentFlap} />
+                        <FlapIndicator min={min} max={max} request={commandedFlap} position={posArray} />
+                        <br /> Flap position value = {posArray[0]} {posArray[0] == undefined && (<div style={{display:"inline-block"}}>unknown</div>)}
+                        <br /> <br />Set max/min flap positions by going to: <br />"./src/App.tsx" and editing the <br />{"\<FlapControl min={0} max={90} \/\>"} line
                     </div>
             </Stack> 
             

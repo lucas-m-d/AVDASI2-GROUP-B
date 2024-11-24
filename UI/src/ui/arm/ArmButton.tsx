@@ -2,17 +2,20 @@ import {useState} from 'react';
 import { Button } from '@mui/material';
 import sendArmRequest from '../../connection/request/sendArmRequest';
 
-export default function ArmButton() {
+interface ArmButtonProps {
+    armStatus : boolean | undefined
+}
 
-    const [arm, setArm] = useState(false);
+export default function ArmButton({armStatus} : ArmButtonProps) {
+
+    const [armed, setArmed] = useState(armStatus);
     const handleArm = () => {
-        setArm(!arm)
-        sendArmRequest(!arm) 
+        (armStatus !== undefined) && sendArmRequest(!armed) 
     }
 
     return (
         <div>
-            <Button variant="contained" onClick={handleArm}>{arm ? "Disarm" : "Arm"}</Button>
+            <Button variant="contained" onClick={handleArm} disabled={(armStatus === undefined)}>{armed ? "Disarm" : "Arm"}</Button>
         </div>
     )
 }

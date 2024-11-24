@@ -10,6 +10,12 @@ class FlightMode(Enum):
     MANUAL = 0
     STABILISE = 2
 
+class RCWifiControl(Enum):
+    RC = 0
+    WiFi = 1
+
+
+
 class CubeConnection:
 
     ## might be an idea to move all of the commands to a separate file, as it's making this class extremely long 
@@ -21,7 +27,7 @@ class CubeConnection:
         self.req_data = ["ATTITUDE"]
 
         self.testing = testing
-        self.refresh_attitude = 1/10
+        self.refresh_attitude = 1/2
         self.refresh_servo = 1/2
         self.refresh_heartbeat = 1/1
         self.TIMEOUT = 10
@@ -49,34 +55,40 @@ class CubeConnection:
                 print("Connection: Heartbeat from system (system %u component %u)" % (self.connection.target_system, self.connection.target_component))
 
                 
-                ## disarm everything on load
-                self.connection.mav.command_long_send(
-                    self.connection.target_system,
-                    self.connection.target_component,
-                    mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
-                    0,
-                    1, 0, 0, 0, 0, 0, 0)
                 
+                self._set_mode(129)
+                #self._set_mode(128)
+                print("here2")
+                
+                
+                
+                print(self.connection.motors_armed())
                 self.flap_pins = [10]
                 self.initialised.set()
             else:
+                
                 print("testing data")
-        except:
-            pass
+        except Exception as E:
+            print(E)
 
     def changeDataRate(self, command, rate_s):
+        rate_us = rate_s * 1E6
         self.connection.mav.command_long_send(
                 self.connection.target_system,
                 self.connection.target_component,
                 mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL,
                 0,
                 command,
-                rate_s * 1000000,
+                rate_us,
                 0,0,0,0,0)
         
-        response = self.connection.recv_match(type="COMMAND_ACK", blocking=True)
-        if response and response.command == mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL and response.result == mavutil.mavlink.MAV_RESULT_ACCEPTED:
-            print("Command accepted")
+        # response = self.connection.recv_match(type="COMMAND_ACK", blocking=True)
+        # if response and response.command == command and response.result == mavutil.mavlink.MAV_RESULT_ACCEPTED:
+        #     print("Command accepted: ", command)
+        # else:
+        #     print(command)
+        #     print("command not accepted")
+        #     print(response)
        
     def _getLatestMessageID(self):
         self._latest_message_ID += 1
@@ -96,7 +108,6 @@ class CubeConnection:
         
         if not self.testing:
             data = self.connection.recv_match(type="ATTITUDE", blocking=True).to_dict() # get attitude info
-            data2 = self.connection.recv_match(type="HEARTBEAT", blocking=True).to_dict()
         
         return {
             "time_boot_ms":data["time_boot_ms"],
@@ -116,15 +127,16 @@ class CubeConnection:
                 self.connection.target_system,
                 self.connection.target_component,
                 mavutil.mavlink.MAV_CMD_DO_SET_MODE,
-                0,
-                mode.value,
+                mode-20,
+                mode,
                 0, 0, 0, 0, 0, 0
             )
-            print(f"Flight mode set to {mode.name}")
+            #print(f"Flight mode set to {mode.name}")
+
         except Exception as e:
             print("Error setting flight mode:", e)
 
-    def send_rc_override(self, channels):
+    async def send_rc_override(self, channels):
         """
         Send MAVLink RC_OVERRIDE commands to override RC inputs.
         :param channels: List of 8 channel values (e.g., [1500, 1500, 1500, 1500, 0, 0, 0, 0])
@@ -136,6 +148,9 @@ class CubeConnection:
                 *channels
             )
             print("RC_OVERRIDE sent:", channels)
+            #response = self.connection.recv_match(type="COMMAND_ACK", blocking=True)
+            #print(response)
+
             return True
         except Exception as e:
             print("Error sending RC_OVERRIDE:", e)
@@ -189,7 +204,7 @@ class CubeConnection:
                 self.connection.target_system,
                 self.connection.target_component,
                 mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
-                self._getLatestMessageID(),
+                0,
             req, 0, 0, 0, 0, 0, 0)
 
                 
@@ -204,6 +219,7 @@ class CubeConnection:
         self.changeDataRate(30, self.refresh_attitude)
 
         while True:
+            
             if not self.testing:
                 data = self.connection.recv_match(type="ATTITUDE", blocking=True).to_dict() # get attitude info
             data = {
@@ -232,52 +248,95 @@ class CubeConnection:
             await websocket.send(json.dumps(data))
             await asyncio.sleep(self.refresh_servo/self.refresh_check)
 
+    async def flapSensor_loop(self, websocket):
+        '''
+        ADD FLAP SENSOR FETCHING CODE HERE
+        FOR NOW ASSUMING ONLY ONE FLAP SENSOR
+        '''
+        flapSensorPosition = random.randint(0, 360)
+        while True:
+            if not self.testing():
+                #### get the flap sensor position in this if statement!
+                flapSensorPosition = random.randint(0, 360) #delete this line
+
+            flapSensorMessage = {
+                "type":"FLAP_SENSOR",
+                "flapSensorPosition": flapSensorPosition
+            }
+
+            await websocket.send(json.dumps(flapSensorMessage))
+            await asyncio.sleep((1/2)/self.refresh_check) # get update every half second
+             
+                
+
     async def heartbeat_loop(self, websocket):
         self.changeDataRate(0, self.refresh_heartbeat)
         while True:
             if not self.testing:
                 data = self.connection.recv_match(type="HEARTBEAT", blocking=True).to_dict()
+                
             data = {
                 "type":"HEARTBEAT",
                 "mode":data["base_mode"],
-                "connected":True
+                "connected":True,
+                "armed":self.connection.motors_armed()
+                #"armed": self.con.motors_armed()
             }
+            print(data)
             await websocket.send(json.dumps(data))
             await asyncio.sleep(self.refresh_heartbeat/self.refresh_check)
+    
+    async def command_ack_loop(self):
+        while True:
+            data = self.connection.recv_match(type="COMMAND_ACK", blocking=True).to_dict()
+            print(data)
+            await asyncio.sleep(0.25)
     
 
     def update(self, websocket):
         '''take returned data from updateStatus and then send to the websocket'''
-        asyncio.create_task(self.attitude_loop(websocket))
-        asyncio.create_task(self.servo_loop(websocket))
-        asyncio.create_task(self.heartbeat_loop(websocket))
+        asyncio.gather(
+            self.attitude_loop(websocket),
+            self.servo_loop(websocket),
+            self.heartbeat_loop(websocket),
+            self.flapSensor_loop(websocket),
+            self.command_ack_loop()
+        )   
 
 
     async def handle(self, message):
         '''deal with incoming messages from the websocket'''
-        msg = json.loads(message)
-        
-        print(msg)
-        if 'flap' in msg:
-            self._sendFlapRequest(int(msg['flap']))
-        if 'arm' in msg:
-            print("arming")
-            self._sendArmRequest(bool(msg['arm']))
-        if 'override' in msg:
-            # Example: { "override": [1500, 1500, 1500, 1500, 0, 0, 0, 0] }
-            print("overriding")
-            self.send_rc_override(msg['override'])
-        if 'clear_override' in msg:
-            print("clearing override")
-            self.clear_rc_override()
-        if 'mode' in msg:
-            print("changing mode")
-            # Example: { "mode": "MANUAL" }
-            try:
-                mode = FlightMode[msg['mode'].upper()]
-                self._set_mode(mode)
-            except:
-                print("invalid flight mode for message %s", msg)
+        try:
+            
+            msg = json.loads(message)
+            
+            print(msg)
+            if 'flap' in msg:
+                self._sendFlapRequest(int(msg['flap']))
+            if 'arm' in msg:
+                print("arming")
+                #self._sendArmRequest(bool(msg['arm']))
+            if 'override' in msg:
+                # Example: { "override": [1500, 1500, 1500, 1500, 0, 0, 0, 0] }
+                print("overriding")
+                asyncio.ensure_future(self.send_rc_override(msg['override']))
+            if 'RCWiFiMode' in msg:
+                print("changing RC wifi mode")
+                nextControlMode = FlightMode(msg['RCWiFiMode'])
+                self.clear_rc_override()
+            if 'mode' in msg:
+                print("changing mode")
+                # Example: { "mode": "MANUAL" }
+                try:
+                    mode = FlightMode[msg['mode'].upper()]
+                    #self._set_mode(mode)
+                except:
+                    print("invalid flight mode for message %s", msg)
+            #response = self.connection.recv_match(type="COMMAND_ACK", blocking=True)
+            #print(response)
+        except Exception as E:
+            print("Error\n"+E)
+            
             
 
     
