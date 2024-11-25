@@ -257,8 +257,9 @@ class CubeConnection:
         while True:
             if not self.testing():
                 #### get the flap sensor position in this if statement!
-                flapSensorPosition = random.randint(0, 360) #delete this line
-
+                data = self.connection.recv_match(type="NAMED_VALUE_FLOAT", blocking=True).to_dict()
+                flapSensorPosition = data["value"]
+                #### should work, could you double check if I messed sth up     - Mate
             flapSensorMessage = {
                 "type":"FLAP_SENSOR",
                 "flapSensorPosition": flapSensorPosition
