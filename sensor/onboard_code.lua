@@ -42,6 +42,15 @@ file = io.open(file_path, "w")
 file:close()
 ----------------------------------------------
 
+local socket = require("socket")
+
+-- Add WebSocket server setup
+local server = assert(socket.bind("*", 8080)) -- Bind to port 8080
+server:settimeout(0) -- Non-blocking mode
+local client -- Holds the WebSocket client connection
+
+
+
 
 if sensor then
     gcs:send_text(0, "I2C bus setup complete")
@@ -65,14 +74,16 @@ function read_raw()
         local low = raw_angle[2]
         local angle = (high * 256) + low
         angle = (angle / 4090) * 360
-        gcs:send_text(6,"Flap angle: " .. tostring(angle) .. " deg")
-        send_data(angle)
-        log(angle)
+        gcs:send_text(6, "Flap angle: " .. tostring(angle) .. " deg")
+        send_data(angle) -- Send via MAVLink
+        send_live_data(angle) -- Send via WebSocket
+        log(angle) -- Log to file
         return
     else
         gcs:send_text(6, "Failed read from sensor")
     end
 end
+
 
 function open_file()
     file = io.open(file_path, "a")
@@ -97,13 +108,38 @@ function log(angle)
         return
     end
 end
+function check_client()
+    if not client then
+        client = server:accept() -- Accept new client connection
+        if client then
+            client:settimeout(0) -- Non-blocking mode for the client
+            gcs:send_text(6, "WebSocket client connected")
+        end
+    end
+end
+
+function send_live_data(angle)
+    check_client() -- Ensure a client is connected
+    if client then
+        local timestamp = millis()
+        timestamp = tonumber(tostring(timestamp))
+        local message = string.format("%s, %s\n", timestamp, angle)
+        local success, err = client:send(message)
+        if not success then
+            gcs:send_text(6, "WebSocket send failed: " .. tostring(err))
+            client = nil -- Reset client on failure
+        end
+    end
+end
     
 
 
 function update()
-    read_raw()
-    return update, 500
+    check_client() -- Check for WebSocket client connections
+    read_raw() -- Read and process sensor data
+    return update, 500 -- Call again after 500ms
 end
+
 
 
 return update()
