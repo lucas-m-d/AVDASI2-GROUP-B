@@ -1,34 +1,35 @@
 -- TO DO:
---  - finish toggling code
 --  - test angle sensor code while servos connected
 --  - test mavlink messaging of angle data
 --  - live graphing
+--  - measurement frequency
 
 ----------------------------------------------
 ----------------------------------------------
 ----------------------------------------------
+
+-- PROPERTY OF TEAM 18 OF THE BLUEBIRD CORPORATION, © 2024 BlueBird, ALL RIGHTS RESERVED  --
 
 
 local ADDR = 0x36
 local RAW_ADDR_REG = 0x0C
 local bus = 0 --    = 0 for I2C2 port on the carrier board
 
-local file_path = "/APM/LOGS/AS5600_log.txt"
+local file_path = "/APM/LOGS/AS5600_log.csv"
 local file
 
 local chan = 0 -- Mavlink channel id
 
--- Measurement/logging toggle (after Gate 2a)
 ----------------------------------------------
 
---local SCR_U1 = Parameter() -- Will control measurement toggle
---local SCR_U2 = Parameter() -- Will control logging toggle
---SCR_U1:init('SCR_USER1')
---SCR_U2:init('SCR_USER2')
---local U1 = SCR_U1:get()
---local U2 = SCR_U2:get()
---local is_logging = false
---local is_measuring = false
+local SCR_U1 = Parameter() -- Will control measurement toggle
+local SCR_U2 = Parameter() -- Will control logging toggle
+SCR_U1:init('SCR_USER1')
+SCR_U2:init('SCR_USER2')
+local U1 = SCR_U1:get()
+local U2 = SCR_U2:get()
+local is_logging = false
+local is_measuring = false
 
 ----------------------------------------------
 ----------------------------------------------
@@ -37,19 +38,9 @@ local sensor = i2c:get_device(bus, ADDR)
 sensor:set_address(ADDR)
 
 ----------------------------------------------
--- Flushing previous flight data, do we need this?
 file = io.open(file_path, "w")
 file:close()
 ----------------------------------------------
-
-local socket = require("socket")
-
--- Add WebSocket server setup
-local server = assert(socket.bind("*", 8080)) -- Bind to port 8080
-server:settimeout(0) -- Non-blocking mode
-local client -- Holds the WebSocket client connection
-
-
 
 
 if sensor then
@@ -58,32 +49,66 @@ else
     gcs:send_text(0, "I2C bus setup failed")
 end
 
-
-function send_data(data)
-    local message = {
-        name = "Sensor reading"     -- Can add specific wing sensor designation later
-        value = data
-    }
-    mavlink:send_message(chan, 251, message)
-end
-
-function read_raw()
-    local raw_angle = sensor:read_registers(RAW_ADDR_REG, 2)
-    if raw_angle then
-        local high = raw_angle[1]
-        local low = raw_angle[2]
-        local angle = (high * 256) + low
-        angle = (angle / 4090) * 360
-        gcs:send_text(6, "Flap angle: " .. tostring(angle) .. " deg")
-        send_data(angle) -- Send via MAVLink
-        send_live_data(angle) -- Send via WebSocket
-        log(angle) -- Log to file
-        return
+function verify()
+    U1 = SCR_U1:get()
+    U2 = SCR_U2:get()
+    gcs:send_text(1, "is_measuring: " .. tostring(is_measuring))
+    gcs:send_text(1, "is_logging: " .. tostring(is_logging))
+    if U1 == 1.0 then
+        if is_measuring == false then
+            gcs:send_text(0, "Beginning sensor measurement")
+            is_measuring = true
+        end
     else
-        gcs:send_text(6, "Failed read from sensor")
+        if is_measuring == true then
+            gcs:send_text(0, "Stopping sensor measurement")
+            is_measuring = false
+        end
+    end
+    if U2 == 1.0 then
+        if is_logging == false then
+            gcs:send_text(0, "Starting logging")
+            is_logging = true
+        end
+    else
+        if is_logging == true then
+            gcs:send_text(0, "Stopping logging")
+            is_logging = false
+        end
     end
 end
 
+function get_clock()
+    local time = millis()
+    time = tonumber(tostring(time))
+    return time
+end
+
+
+function send_data(data)
+    gcs:send_named_float("Sensor", data)
+    gcs:send_text(6, "Sending angle data to gcs...")
+end
+
+function read_raw()
+    if is_measuring == true then
+        local raw_angle = sensor:read_registers(RAW_ADDR_REG, 2)
+        if raw_angle then
+            local high = raw_angle[1]
+            local low = raw_angle[2]
+            local angle = (high * 256) + low
+            angle = (angle / 4090) * 360
+            gcs:send_text(6,"Flap angle: " .. tostring(angle) .. " deg")
+            log(angle)
+            send_data(angle)
+            return
+        else
+            gcs:send_text(6, "Failed read from sensor")
+        end
+    else
+        return
+    end
+end
 
 function open_file()
     file = io.open(file_path, "a")
@@ -96,50 +121,31 @@ function open_file()
 end
 
 function log(angle)
-    open_file()
-    if file then
-        local timestamp = millis()
-        timestamp = tonumber(tostring(timestamp))
-        file:write(string.format("%s, %s \n", timestamp, angle))
-        file:close()
-        return
+    if is_logging == true then
+        open_file()
+        if file then
+            local timestamp = get_clock()
+            file:write(string.format("%s, %s \n", timestamp, angle))
+            file:close()
+            return
+        else
+            gcs:send_text(6, "Logging failed, file open fail")
+            return
+        end
     else
-        gcs:send_text(6, "Logging failed, file open fail")
         return
-    end
-end
-function check_client()
-    if not client then
-        client = server:accept() -- Accept new client connection
-        if client then
-            client:settimeout(0) -- Non-blocking mode for the client
-            gcs:send_text(6, "WebSocket client connected")
-        end
-    end
-end
-
-function send_live_data(angle)
-    check_client() -- Ensure a client is connected
-    if client then
-        local timestamp = millis()
-        timestamp = tonumber(tostring(timestamp))
-        local message = string.format("%s, %s\n", timestamp, angle)
-        local success, err = client:send(message)
-        if not success then
-            gcs:send_text(6, "WebSocket send failed: " .. tostring(err))
-            client = nil -- Reset client on failure
-        end
     end
 end
     
 
 
 function update()
-    check_client() -- Check for WebSocket client connections
-    read_raw() -- Read and process sensor data
-    return update, 500 -- Call again after 500ms
+    gcs:send_text(6, "-----------------------------")   -- This way it looks nicer on the console, but will be removed for final software build
+    verify()
+    read_raw()
+    gcs:send_text(6, "-----------------------------")
+    return update, 1000
 end
-
 
 
 return update()
