@@ -2,13 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import TestArtificialHorizon from "./ui/artificialHorizon/testArtificialHorizon";
 import { FlapControl } from "./ui/flightControlSurfaces/flaps/FlapControl";
 import AutopilotPanel from "./ui/autopilotPanel/AutopilotPanel";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2"
 import { connectWebSocket, getDataRate, latestData, socket } from "./connection/connection";
 import ArtificialHorizon from "./ui/artificialHorizon/ArtificialHorizon";
 import ArmButton from "./ui/arm/ArmButton";
 import { RCModeButton, RCWifiSwitch } from "./ui/RC/RCModeButtons";
 import RCSendControl from "./ui/RC/RCSendControl";
-import LivePlot from "./ui/dataHistory/liveplot"; 
+import LivePlot from "./ui/dataHistory/LivePlot"; 
 
 export default function App() {
     const [data, setData] = useState(latestData);
@@ -44,6 +44,8 @@ export default function App() {
     const testing = false;
 
     return (
+        <div>
+            
         <Grid container spacing={1}>
             {/* WebSocket status display */}
             <div>
@@ -56,12 +58,12 @@ export default function App() {
             </div>
 
             {/* Autopilot Panel */}
-            <Grid xs={12} component="div">
+            <Grid size={12} component="div">
                 <AutopilotPanel />
             </Grid>
 
             {/* Artificial Horizon Display */}
-            <Grid xs={6} component="div">
+            <Grid size={6} component="div">
                 {testing ? (
                     <TestArtificialHorizon />
                 ) : (
@@ -70,12 +72,12 @@ export default function App() {
             </Grid>
 
             {/* Flap Control */}
-            <Grid xs={3} component="div">
+            <Grid size={3} component="div">
                 <FlapControl min={0} max={90} posArray={[data.flapSensorPosition, data.flapSensorPosition]} />
             </Grid>
 
             {/* Data Rate and Time Display */}
-            <Grid xs={1} component="div">
+            <Grid size={1} component="div">
                 <p>
                     Data rate: {dr.current[0]}<br />
                     Data time: {dr.current[1]}
@@ -83,24 +85,28 @@ export default function App() {
             </Grid>
 
             {/* RC Send Control */}
-            <Grid xs={2} component="div">
+            <Grid size={2} component="div">
                 <RCSendControl />
             </Grid>
 
             {/* Arm Button */}
-            <Grid xs={3} component="div">
+            <Grid size={3} component="div">
                 <ArmButton armStatus={latestData.armed} />
             </Grid>
 
             {/* RC Mode Button */}
-            <Grid xs={3} component="div">
+            <Grid size={3} component="div">
                 <RCModeButton mode={latestData.mode} />
             </Grid>
 
             {/* LivePlot Component */}
-            <Grid xs={12} component="div">
+            <Grid size={12}>
                 <LivePlot />
             </Grid>
+            
         </Grid>
+            
+        </div>
     );
+    
 }

@@ -121,7 +121,7 @@ export function FlapControl({min, max, posArray} : FlapControlProps) {
                         <Typography variant="h6" align="center">FLAP GAUGES</Typography>
                         <FlapIndicator min={min} max={max} request={commandedFlap} position={posArray} />
                         <br /> Flap position value = {posArray[0]} {posArray[0] == undefined && (<div style={{display:"inline-block"}}>unknown</div>)}
-                        <br /> <br />Set max/min flap positions by going to: <br />"./src/App.tsx" and editing the <br />{"\<FlapControl min={0} max={90} \/\>"} line
+                        <br /> <br />Set max/min flap positions by going to: <br />"./src/App.tsx" and editing the <br />{"<FlapControl min={0} max={90} />"} line
                     </div>
             </Stack> 
             
