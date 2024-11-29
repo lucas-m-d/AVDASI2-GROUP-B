@@ -84,7 +84,7 @@
 // }
 import { useState, useEffect } from "react";
 import { latestData } from "../../connection/connection";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 
 type  LivePlotDataPoint={
     "time_boot_ms":number|undefined;

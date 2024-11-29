@@ -73,7 +73,7 @@ export default function App() {
 
             {/* Flap Control */}
             <Grid size={3} component="div">
-                <FlapControl min={0} max={90} posArray={[data.flapSensorPosition, data.flapSensorPosition]} />
+                <FlapControl min={0} max={90} requested={data.flapRequestStatus} posArray={[data.flapSensorPosition, data.flapSensorPosition]} />
             </Grid>
 
             {/* Data Rate and Time Display */}

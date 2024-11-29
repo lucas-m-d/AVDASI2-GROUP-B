@@ -13,7 +13,7 @@ type DroneData = {
     time_boot_ms: number | undefined;
     mode: "MANUAL" | "STABILISE" | undefined; // this needs to be redone
     armed: boolean | undefined;
-    flapRequestStatus: boolean | undefined;
+    flapRequestStatus: number | undefined;
     flapSensorPosition: number | undefined;
 };
 
@@ -33,7 +33,6 @@ const connectWebSocket = (url: string) => {
 
     socket.onmessage = (event: MessageEvent) => {
 
-        console.log(event.data)
         var newData = JSON.parse(event.data);
         if (newData.type=="ATTITUDE"){
             latestData.time_boot_ms = newData.time_boot_ms
@@ -42,9 +41,11 @@ const connectWebSocket = (url: string) => {
             latestData.yaw = newData.yaw
         }
         else if (newData.type === "HEARTBEAT"){
+            console.log(newData)
             latestData.mode = newData.mode
             latestData.armed = Boolean(newData.armed)
         } else if (newData.type === "SERVO_OUTPUT_RAW") {
+            console.log(newData.flapRequested)
             latestData.flapRequestStatus = newData.flapRequested
         } else if (newData.type === "ERROR"){
             console.log(newData)
