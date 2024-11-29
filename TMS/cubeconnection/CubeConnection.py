@@ -15,6 +15,20 @@ class RCWifiControl(Enum):
     WiFi = 1
 
 
+refresh_time = 0.05
+async def asyncRecvMatch(connection, type: str, blocking: bool=False):
+    ## blocking isn't necessary
+    
+    while True:
+        m = connection.recv_msg()
+        if m is None:
+            continue        
+        await asyncio.sleep(refresh_time) ## poll through messages
+        ## probably easier if there's just one massive message handler
+        
+        if type == m.get_type():
+            print(m)
+            return m.to_dict()
 
 class CubeConnection:
 
@@ -108,7 +122,7 @@ class CubeConnection:
         '''Function to continually update data and return the data'''
         
         if not self.testing:
-            data = self.connection.recv_match(type="ATTITUDE", blocking=True).to_dict() # get attitude info
+            data = await asyncRecvMatch(self.connection, type="ATTITUDE", blocking=True)  # get attitude info
         
         return {
             "time_boot_ms":data["time_boot_ms"],
@@ -213,106 +227,61 @@ class CubeConnection:
             print("error sending arm request message")
             print(e)
 
-    
-
-    async def attitude_loop(self, websocket):
-        '''Function to continually update attitude data and return it'''
-        self.changeDataRate(30, self.refresh_attitude)
-        
-        while True:
-            print("attitude")           
-            if not self.testing:
-                data = self.connection.recv_match(type="ATTITUDE", blocking=self.blocking).to_dict() # get attitude info
-            data = {
-            "type":"ATTITUDE",
-            "time_boot_ms":data["time_boot_ms"],
-            "roll":data["roll"],
-            "pitch":data["pitch"],
-            "yaw":data["yaw"]
-            }
-            await websocket.send(json.dumps(data))
-            await asyncio.sleep(self.refresh_attitude/self.refresh_check)
-    
-    async def servo_loop(self, websocket):
-        '''Continually update flap request data
-        type="SERVO_OUTPUT_RAW"
-        '''
-        print("servooutput")
-        self.changeDataRate(36, self.refresh_servo)
-        while True:
-            if not self.testing:
-                data = self.connection.recv_match(type="SERVO_OUTPUT_RAW", blocking=self.blocking).to_dict()
-            data = {
-                
-                "type":"SERVO_OUTPUT_RAW",
-                "flapRequested":data["servo10_raw"]
-            }
-
-            await websocket.send(json.dumps(data))
-            await asyncio.sleep(self.refresh_servo/self.refresh_check)
-
-    async def flapSensor_loop(self, websocket):
-        '''
-        ADD FLAP SENSOR FETCHING CODE HERE
-        FOR NOW ASSUMING ONLY ONE FLAP SENSOR
-        '''
-        flapSensorPosition = random.randint(0, 360)
-        while True:
-            print("flapsensor")
-            if not self.testing:
-                #### get the flap sensor position in this if statement!
-                data = self.connection.recv_match(type="NAMED_VALUE_FLOAT", blocking=self.blocking).to_dict()
-                flapSensorPosition = data["value"]
-                #### should work, could you double check if I messed sth up     - Mate
-            flapSensorMessage = {
-                "type":"FLAP_SENSOR",
-                "flapSensorPosition": flapSensorPosition
-            }
-
-            await websocket.send(json.dumps(flapSensorMessage))
-            await asyncio.sleep((1/2)/self.refresh_check) # get update every half second
-             
-                
-
-    async def heartbeat_loop(self, websocket):
-        self.changeDataRate(0, self.refresh_heartbeat)
-        while True:
-            print("Heartbeat")
-            if not self.testing:
-                data = self.connection.recv_match(type="HEARTBEAT", blocking=self.blocking).to_dict()
-                
-            data = {
-                "type":"HEARTBEAT",
-                "mode":data["base_mode"],
-                "connected":True,
-                "armed":self.connection.motors_armed()
-            }
-            print(data)
-    
-            await websocket.send(json.dumps(data))
-            await asyncio.sleep(self.refresh_heartbeat/self.refresh_check)
-    
-    async def command_ack_loop(self):
-        while True:
-            data = self.connection.recv_match(type="COMMAND_ACK", blocking=self.blocking).to_dict()
-            print(data)
-            await asyncio.sleep(0.25)
-    
-    ### add attempt to send function
 
     def update(self, websocket):
-        '''take returned data from updateStatus and then send to the websocket'''
+        asyncio.gather(self.messageLoop(websocket=websocket))
 
-        #### change this to process each heartbeat message
-        print("starting looop")
-        asyncio.gather(
-            self.servo_loop(websocket),
-            self.heartbeat_loop(websocket),
-            #self.flapSensor_loop(websocket),
-            self.attitude_loop(websocket),
-        )   
+    async def messageLoop(self, websocket=None):
+        refresh_time = 0.01
+        MESSAGE_TYPES = ["HEARTBEAT", "COMMAND_ACK", "NAMED_VALUE_FLOAT", "SERVO_OUTPUT_RAW", "ATTITUDE"]
+        ## change data rates
+        self.changeDataRate(0, self.refresh_heartbeat) 
+        self.changeDataRate(36, self.refresh_servo)
+        self.changeDataRate(30, self.refresh_attitude)
 
+        while True:
+            m = self.connection.recv_msg()
+            if m is None:
+                continue        
 
+            ## probably easier if there's just one massive message handler
+            t = m.get_type()
+            data = m.to_dict()
+            msg = None
+            if t == "HEARTBEAT":
+                msg = {
+                    "type":"HEARTBEAT",
+                    "mode":data["base_mode"],
+                    "connected":True,
+                    "armed":self.connection.motors_armed()
+                }
+            elif t == "COMMAND_ACK":
+                if data["command"] == 511:
+                    print("Message interval being set")
+                else:
+                    print(data)
+            elif t=="NAMED_VALUE_FLOAT":
+                print(data)
+            elif t=="SERVO_OUTPUT_RAW":
+                msg = {
+                    "type":"SERVO_OUTPUT_RAW",
+                    "flapRequested":data["servo10_raw"]
+                }
+            elif t=="ATTITUDE":
+                msg = {
+                    "type":"ATTITUDE",
+                    "time_boot_ms":data["time_boot_ms"],
+                    "roll":data["roll"],
+                    "pitch":data["pitch"],
+                    "yaw":data["yaw"]
+                }
+            if msg is not None and websocket is not None:
+                await websocket.send(json.dumps(msg))    
+            self.log(data)
+            await asyncio.sleep(refresh_time) ## poll through messages
+
+    def log(self, data):
+        pass
     async def handle(self, message):
         '''deal with incoming messages from the websocket'''
         try:
@@ -347,8 +316,104 @@ class CubeConnection:
             print("Error\n"+E)
             
             
+    # def update(self, websocket):
+    #     '''take returned data from updateStatus and then send to the websocket'''
 
+    #     #### change this to process each heartbeat message
+    #     print("starting looop")
+    #     asyncio.gather(self.getMessageLoop(websocket=websocket))
+    #     # asyncio.gather(
+    #     #     self.servo_loop(websocket),
+    #     #     self.heartbeat_loop(websocket),
+    #     #     #self.flapSensor_loop(websocket),
+    #     #     self.attitude_loop(websocket),
+    #     # )   
     
+    
+
+    # async def attitude_loop(self, websocket):
+    #     '''Function to continually update attitude data and return it'''
+    #     self.changeDataRate(30, self.refresh_attitude)
+        
+    #     while True:
+    #         print("attitude")           
+    #         if not self.testing:
+    #             data = await asyncRecvMatch(self.connection, type="ATTITUDE", blocking=self.blocking)  # get attitude info
+    #         data = {
+    #             "type":"ATTITUDE",
+    #             "time_boot_ms":data["time_boot_ms"],
+    #             "roll":data["roll"],
+    #             "pitch":data["pitch"],
+    #             "yaw":data["yaw"]
+    #         }
+    #         await websocket.send(json.dumps(data))
+    #         await asyncio.sleep(self.refresh_attitude/self.refresh_check)
+    
+    # async def servo_loop(self, websocket):
+    #     '''Continually update flap request data
+    #     type="SERVO_OUTPUT_RAW"
+    #     '''
+    #     print("servooutput")
+    #     self.changeDataRate(36, self.refresh_servo)
+    #     while True:
+    #         if not self.testing:
+    #             data = await asyncRecvMatch(self.connection, type="SERVO_OUTPUT_RAW", blocking=self.blocking) 
+    #         data = {
+    #             "type":"SERVO_OUTPUT_RAW",
+    #             "flapRequested":data["servo10_raw"]
+    #         }
+
+    #         await websocket.send(json.dumps(data))
+    #         await asyncio.sleep(self.refresh_servo/self.refresh_check)
+
+    # async def flapSensor_loop(self, websocket):
+    #     '''
+    #     ADD FLAP SENSOR FETCHING CODE HERE
+    #     FOR NOW ASSUMING ONLY ONE FLAP SENSOR
+    #     '''
+    #     flapSensorPosition = random.randint(0, 360)
+    #     while True:
+    #         print("flapsensor")
+    #         if not self.testing:
+    #             #### get the flap sensor position in this if statement!
+    #             data = await asyncRecvMatch(self.connection, type="NAMED_VALUE_FLOAT", blocking=self.blocking) 
+    #             flapSensorPosition = data["value"]
+    #             #### should work, could you double check if I messed sth up     - Mate
+    #         flapSensorMessage = {
+    #             "type":"FLAP_SENSOR",
+    #             "flapSensorPosition": flapSensorPosition
+    #         }
+
+    #         await websocket.send(json.dumps(flapSensorMessage))
+    #         await asyncio.sleep((1/2)/self.refresh_check) # get update every half second
+             
+                
+
+    # async def heartbeat_loop(self, websocket):
+    #     self.changeDataRate(0, self.refresh_heartbeat)
+    #     while True:
+    #         print("Heartbeat")
+    #         if not self.testing:
+    #             data = await asyncRecvMatch(self.connection, type="HEARTBEAT", blocking=self.blocking) 
+                
+    #         data = {
+    #             "type":"HEARTBEAT",
+    #             "mode":data["base_mode"],
+    #             "connected":True,
+    #             "armed":self.connection.motors_armed()
+    #         }
+    #         print(data)
+    
+    #         await websocket.send(json.dumps(data))
+    #         await asyncio.sleep(self.refresh_heartbeat/self.refresh_check)
+    
+    # async def command_ack_loop(self):
+    #     while True:
+    #         data = await asyncRecvMatch(self.connection, type="COMMAND_ACK", blocking=self.blocking) 
+    #         print(data)
+    #         await asyncio.sleep(0.25)
+    
+
 
             
         

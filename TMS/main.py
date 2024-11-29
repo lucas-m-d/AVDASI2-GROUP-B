@@ -5,7 +5,7 @@ import websockets
 from cubeconnection.CubeConnection import CubeConnection, FlightMode
 PORT = 8001
 CONSTR = 'udp:0.0.0.0:14550' # use this for UDP connection
-#CONSTR = 'com6'
+CONSTR = 'com6'
 TEST = False
 
 DISCONNECTED_MSG_INTERVAL = 2
