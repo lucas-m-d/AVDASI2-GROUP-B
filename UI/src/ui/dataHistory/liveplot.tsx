@@ -133,7 +133,7 @@ export default function LivePlot() {
             });
             }
             
-        }, 1000 / 10); // Update at 10 Hz
+        }, 1000 / 20); // Update at 10 Hz
 
         return () => {
             clearInterval(intervalId)

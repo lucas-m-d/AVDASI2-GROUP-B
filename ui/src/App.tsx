@@ -27,6 +27,7 @@ export default function App() {
         const intervalId1 = setInterval(() => {
             // Ensure latestData is updated correctly
             setData({ ...latestData });
+            console.log(latestData.flapSensorPosition)
         }, dataRefreshRate);
 
         // Socket connection status interval
@@ -63,7 +64,7 @@ export default function App() {
             </Grid>
 
             {/* Artificial Horizon Display */}
-            <Grid size={6} component="div">
+            <Grid size={5} component="div">
                 {testing ? (
                     <TestArtificialHorizon />
                 ) : (
@@ -73,24 +74,36 @@ export default function App() {
 
             {/* Flap Control */}
             <Grid size={3} component="div">
-                <FlapControl min={0} max={90} requested={data.flapRequestStatus} posArray={[data.flapSensorPosition, data.flapSensorPosition]} />
+                <FlapControl min={0} max={360} requested={data.flapRequestStatus} posArray={[data.flapSensorPosition, data.flapSensorPosition]} />
             </Grid>
 
-            {/* Data Rate and Time Display */}
+            {/* Data Rate and Time Display
             <Grid size={1} component="div">
                 <p>
                     Data rate: {dr.current[0]}<br />
                     Data time: {dr.current[1]}
                 </p>
-            </Grid>
+            </Grid> */}
 
             {/* RC Send Control */}
             <Grid size={2} component="div">
                 <RCSendControl />
             </Grid>
 
+            <Grid size={2}>
+                Errors:
+                {latestData.errorMessages && latestData.errorMessages.map((msg, i) => {
+                    return(
+                        <div key={i}>
+                            {msg}
+                        </div>
+                    )
+                })}
+            </Grid>
+
             {/* Arm Button */}
             <Grid size={3} component="div">
+                currently armed? {latestData.armed ? "yes" : "no"}
                 <ArmButton armStatus={latestData.armed} />
             </Grid>
 

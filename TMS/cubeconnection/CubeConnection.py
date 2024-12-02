@@ -71,13 +71,8 @@ class CubeConnection:
 
                 
                 
-                self._set_mode(129)
-                #self._set_mode(128)
-                print("here2")
+                #self._set_mode(129)                
                 
-                
-                
-                print(self.connection.motors_armed())
                 self.flap_pins = [10]
                 self.initialised.set()
             else:
@@ -187,8 +182,8 @@ class CubeConnection:
     
     def _sendFlapRequest(self, angle): ##todo
         print("requested angle:", angle)
-        servo_max_pos = 90
-        pwm_command = 1000 + (angle * 2000 / servo_max_pos)
+        servo_max_pos = 100
+        pwm_command = 2000 - (angle * 2000 / servo_max_pos)
         print(pwm_command)
         if not self.testing:
             try:
@@ -222,22 +217,43 @@ class CubeConnection:
                 0,
             req, 0, 0, 0, 0, 0, 0)
 
-                
+            # self.connection.mav.set_mode_send(
+            #     self.connection.target_system,
+            #     mavutil.mavlink.MAV_MODE_FLAG_DECODE
+            #     )
+
         except Exception as e:
             print("error sending arm request message")
             print(e)
-
+        
 
     def update(self, websocket):
         asyncio.gather(self.messageLoop(websocket=websocket))
 
     async def messageLoop(self, websocket=None):
-        refresh_time = 0.01
+        refresh_time = 0.005
         MESSAGE_TYPES = ["HEARTBEAT", "COMMAND_ACK", "NAMED_VALUE_FLOAT", "SERVO_OUTPUT_RAW", "ATTITUDE"]
+        self.connection.mav.set_mode_send(self.connection.target_system, mavutil.mavlink.MAV_MODE_FLAG_DECODE_POSITION_SAFETY, 0) ## turn off safety
         ## change data rates
         self.changeDataRate(0, self.refresh_heartbeat) 
         self.changeDataRate(36, self.refresh_servo)
         self.changeDataRate(30, self.refresh_attitude)
+        self.connection.mav.param_set_send(
+            self.connection.target_system,
+            self.connection.target_component,
+            b'SCR_USER1',
+            1,
+            mavutil.mavlink.MAV_PARAM_TYPE_REAL32
+        )
+        self.connection.mav.param_set_send(
+            self.connection.target_system,
+            self.connection.target_component,
+            b'SCR_USER2',
+            1,
+            mavutil.mavlink.MAV_PARAM_TYPE_REAL32
+        )
+
+        init_flap = None
 
         while True:
             m = self.connection.recv_msg()
@@ -248,35 +264,65 @@ class CubeConnection:
             t = m.get_type()
             data = m.to_dict()
             msg = None
-            if t == "HEARTBEAT":
-                msg = {
-                    "type":"HEARTBEAT",
-                    "mode":data["base_mode"],
-                    "connected":True,
-                    "armed":self.connection.motors_armed()
-                }
-            elif t == "COMMAND_ACK":
-                if data["command"] == 511:
-                    print("Message interval being set")
-                else:
-                    print(data)
-            elif t=="NAMED_VALUE_FLOAT":
-                print(data)
-            elif t=="SERVO_OUTPUT_RAW":
-                msg = {
-                    "type":"SERVO_OUTPUT_RAW",
-                    "flapRequested":data["servo10_raw"]
-                }
-            elif t=="ATTITUDE":
-                msg = {
-                    "type":"ATTITUDE",
-                    "time_boot_ms":data["time_boot_ms"],
-                    "roll":data["roll"],
-                    "pitch":data["pitch"],
-                    "yaw":data["yaw"]
-                }
-            if msg is not None and websocket is not None:
-                await websocket.send(json.dumps(msg))    
+            if t in MESSAGE_TYPES:
+                if t == "HEARTBEAT":
+                    msg = {
+                        "type":"HEARTBEAT",
+                        "mode":data["base_mode"],
+                        "connected":True,
+                        "armed":self.connection.motors_armed()
+                    }
+                    print("armed: ", self.connection.motors_armed())
+
+                elif t == "COMMAND_ACK":
+                    if data["command"] == 511:
+                        print("Message interval being set")
+                    elif data["command"] == mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM:
+                        print("ARM DISARM REQUEST")
+                        print("")
+                        print(data)
+                    else:
+                        print(data)
+                    if data["result"] != 0:
+                        print("request failed")
+                        msg = {
+                            "type":"ERROR",
+                            "message":f'Error failed for message command {data["command"]} with status {data["result"]}'
+                        }
+
+
+                elif t=="NAMED_VALUE_FLOAT":
+                    #print(data)
+                    if data["name"] == "Sensor":
+                        msg = {
+                            "type":"FLAP_SENSOR",
+                            "time_boot_ms":data['time_boot_ms'],
+                            "flapSensorPosition":data["value"]
+                        }
+
+                elif t=="SERVO_OUTPUT_RAW":
+                    try:
+                        
+                        msg = {
+                            "type":"SERVO_OUTPUT_RAW",
+                            "flapRequested":90*(data["servo10_raw"]-1100) / 900
+                        }
+                        
+                    except:
+                        print(data)
+                elif t=="ATTITUDE":
+                    msg = {
+                        "type":"ATTITUDE",
+                        "time_boot_ms":data["time_boot_ms"],
+                        "roll":data["roll"],
+                        "pitch":data["pitch"],
+                        "yaw":data["yaw"]
+                    }
+
+                
+                if msg is not None and websocket is not None:
+                    await websocket.send(json.dumps(msg))   
+
             self.log(data)
             await asyncio.sleep(refresh_time) ## poll through messages
 
@@ -292,8 +338,8 @@ class CubeConnection:
             if 'flap' in msg:
                 self._sendFlapRequest(int(msg['flap']))
             if 'arm' in msg:
-                print("arming")
-                #self._sendArmRequest(bool(msg['arm']))
+                print("arming", bool(msg['arm']))
+                self._sendArmRequest(bool(msg['arm']))
             if 'override' in msg:
                 # Example: { "override": [1500, 1500, 1500, 1500, 0, 0, 0, 0] }
                 print("overriding")

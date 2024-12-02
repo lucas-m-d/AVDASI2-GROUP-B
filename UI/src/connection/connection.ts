@@ -15,6 +15,7 @@ type DroneData = {
     armed: boolean | undefined;
     flapRequestStatus: number | undefined;
     flapSensorPosition: number | undefined;
+    errorMessages: string[]
 };
 
 
@@ -45,11 +46,14 @@ const connectWebSocket = (url: string) => {
             latestData.mode = newData.mode
             latestData.armed = Boolean(newData.armed)
         } else if (newData.type === "SERVO_OUTPUT_RAW") {
-            console.log(newData.flapRequested)
+            //console.log(newData.flapRequested)
             latestData.flapRequestStatus = newData.flapRequested
         } else if (newData.type === "ERROR"){
             console.log(newData)
+            latestData.errorMessages= latestData.errorMessages ? [...latestData.errorMessages, newData.message] : [newData.message]
+            
         } else if (newData.type === "FLAP_SENSOR"){
+            console.log(newData)
             latestData.flapSensorPosition = newData.flapSensorPosition
         } else {
             console.log(event.data)
