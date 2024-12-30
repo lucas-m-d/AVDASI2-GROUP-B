@@ -11,7 +11,7 @@ type DroneData = {
     pitch: number | undefined;
     yaw: number | undefined;
     time_boot_ms: number | undefined;
-    mode: "MANUAL" | "STABILISE" | undefined; // this needs to be redone
+    mode: number | undefined; // this needs to be redone
     armed: boolean | undefined;
     flapRequestStatus: number | undefined;
     flapSensorPosition: number | undefined;

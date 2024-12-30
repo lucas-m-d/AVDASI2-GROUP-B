@@ -1,29 +1,39 @@
 import {useState} from 'react';
 import { Button } from '@mui/material';
 import { sendRCModeRequest } from '../../connection/request/sendRCRequest';
+import { modeFlags } from '../../mavlink/modeFlags';
+import Grid from '@mui/material/Grid2';
+
 
 interface RCModeButtonProps {
-    mode: "MANUAL" | "STABILISE" | undefined
+    mode: number | undefined
 }
 
+
 export function RCModeButton({ mode }: RCModeButtonProps) {
+    const modeFlagNames = Object.values(modeFlags).slice(0, 8); // get names of mode flags
+
     const handleChangeMode = () => {
-        if (mode !== undefined) {
-            const newMode = mode === "MANUAL" ? "STABILISE" : "MANUAL";
-            sendRCModeRequest(newMode);
-        }
+            //sendRCModeRequest(newMode);
+        
     };
 
     return (
         <div>
-            <p>CURRENT AP MODE: {mode || "UNKNOWN"}</p>
-            <Button
-                variant="contained"
-                onClick={handleChangeMode}
-                disabled={mode === undefined}
-            >
-                {`Set mode to ${mode === "MANUAL" ? "STABILISE" : "MANUAL"}`}
-            </Button>
+            <Grid container>
+            {modeFlagNames.map((flag) => (
+                <Grid size={6}>
+                    <Button
+                        variant="contained"
+                        onClick={handleChangeMode}
+                        disabled={mode === undefined}
+                        color={(mode===undefined) ? "inherit" : ((mode & modeFlags[flag]) ? "success" : "error")}
+                    >
+                        {flag}
+                    </Button>
+                </Grid>
+            ))}
+            </Grid>
         </div>
     );
 }

@@ -109,7 +109,7 @@ export default function App() {
 
             {/* RC Mode Button */}
             <Grid size={3} component="div">
-                <RCModeButton mode={latestData.mode} />
+                <RCModeButton mode={81} />
             </Grid>
 
             {/* LivePlot Component */}
