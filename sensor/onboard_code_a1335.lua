@@ -8,11 +8,11 @@
 -- PROPERTY OF TEAM 18 OF THE BLUEBIRD CORPORATION, © 2024 BlueBird, ALL RIGHTS RESERVED  --
 
 
-local ADDR = 0x36
-local RAW_ADDR_REG = 0x0C
-local bus = 0 --    = 0 for I2C2 port on the carrier board
+local ADDR = 0x0C   -- 0x0D, 0x0E or 0x0F depending on hardware configuration
+local REG_ADDR = 0x0C
+local bus = 0   -- = 0 for I2C2 port on the carrier board
 
-local file_path = "/APM/LOGS/AS5600_log.csv"
+local file_path = "/APM/LOGS/A1335_log.csv"
 local file
 
 
@@ -86,13 +86,14 @@ function send_data(data)
     gcs:send_text(6, "Sending angle data to gcs...")
 end
 
-function read_raw()
+function read_angle()
     if is_measuring == true then
-        local raw_angle = sensor:read_registers(RAW_ADDR_REG, 2)
+        local raw_angle = sensor:read_registers(REG_ADDR, 2)
         if raw_angle then
             local high = raw_angle[1]
             local low = raw_angle[2]
             local angle = (high * 256) + low
+            angle = angle & 0x0FFF
             angle = (angle / 4096) * 360
             gcs:send_text(6,"Flap angle: " .. tostring(angle) .. " deg")
             log(angle)
@@ -138,7 +139,7 @@ end
 function update()
     gcs:send_text(6, "-----------------------------")   -- This way it looks nicer on the console, but will be removed for final software build
     verify()
-    read_raw()
+    read_angle()
     gcs:send_text(6, "-----------------------------")
     return update, 1000
 end
