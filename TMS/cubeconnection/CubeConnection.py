@@ -68,10 +68,7 @@ class CubeConnection:
                     raise Exception("No connection")
                 
                 print("Connection: Heartbeat from system (system %u component %u)" % (self.connection.target_system, self.connection.target_component))
-
-                
-                
-                #self._set_mode(129)                
+            
                 
                 self.flap_pins = [10]
                 self.initialised.set()
@@ -91,14 +88,6 @@ class CubeConnection:
                 command,
                 rate_us,
                 0,0,0,0,0)
-        
-        # response = self.connection.recv_match(type="COMMAND_ACK", blocking=True)
-        # if response and response.command == command and response.result == mavutil.mavlink.MAV_RESULT_ACCEPTED:
-        #     print("Command accepted: ", command)
-        # else:
-        #     print(command)
-        #     print("command not accepted")
-        #     print(response)
        
     def _getLatestMessageID(self):
         self._latest_message_ID += 1
@@ -132,16 +121,15 @@ class CubeConnection:
         Set the flight mode of the Cube.
         :param mode: FlightMode Enum (e.g., FlightMode.MANUAL or FlightMode.STABILISE)
         """
-        try:
+        try: # investigate - https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_MODE 
             self.connection.mav.command_long_send(
                 self.connection.target_system,
                 self.connection.target_component,
                 mavutil.mavlink.MAV_CMD_DO_SET_MODE,
-                mode-20,
                 mode,
                 0, 0, 0, 0, 0, 0
             )
-            #print(f"Flight mode set to {mode.name}")
+           
 
         except Exception as e:
             print("Error setting flight mode:", e)
@@ -172,9 +160,6 @@ class CubeConnection:
         if self.send_rc_override([0, 0, 0, 0, 0, 0, 0, 0]):
             print("RC_OVERRIDE cleared.")
 
-
-        #     for i in self.req_data:
-        #         data.append(self.connection.recv_match(type=i, blocking=True).to_dict()) ## perhaps use a dictionary to get required most recent values from self.connection.messages
         if self.testing:
             data = self._testingGenerateData()
         #print(data)
@@ -217,10 +202,6 @@ class CubeConnection:
                 0,
             req, 0, 0, 0, 0, 0, 0)
 
-            # self.connection.mav.set_mode_send(
-            #     self.connection.target_system,
-            #     mavutil.mavlink.MAV_MODE_FLAG_DECODE
-            #     )
 
         except Exception as e:
             print("error sending arm request message")
@@ -232,7 +213,7 @@ class CubeConnection:
 
     async def messageLoop(self, websocket=None):
         refresh_time = 0.005
-        MESSAGE_TYPES = ["HEARTBEAT", "COMMAND_ACK", "NAMED_VALUE_FLOAT", "SERVO_OUTPUT_RAW", "ATTITUDE"]
+        #MESSAGE_TYPES = ["HEARTBEAT", "COMMAND_ACK", "NAMED_VALUE_FLOAT", "SERVO_OUTPUT_RAW", "ATTITUDE"]
         self.connection.mav.set_mode_send(self.connection.target_system, mavutil.mavlink.MAV_MODE_FLAG_DECODE_POSITION_SAFETY, 0) ## turn off safety
         ## change data rates
         self.changeDataRate(0, self.refresh_heartbeat) 
@@ -264,8 +245,8 @@ class CubeConnection:
             t = m.get_type()
             data = m.to_dict()
             msg = None
-            if t in MESSAGE_TYPES:
-                if t == "HEARTBEAT":
+            match t:
+                case "HEARTBEAT":
                     msg = {
                         "type":"HEARTBEAT",
                         "mode":data["base_mode"],
@@ -274,12 +255,11 @@ class CubeConnection:
                     }
                     print("armed: ", self.connection.motors_armed())
 
-                elif t == "COMMAND_ACK":
+                case "COMMAND_ACK":
                     if data["command"] == 511:
                         print("Message interval being set")
                     elif data["command"] == mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM:
                         print("ARM DISARM REQUEST")
-                        print("")
                         print(data)
                     else:
                         print(data)
@@ -291,8 +271,7 @@ class CubeConnection:
                         }
 
 
-                elif t=="NAMED_VALUE_FLOAT":
-                    #print(data)
+                case "NAMED_VALUE_FLOAT":
                     if data["name"] == "Sensor":
                         msg = {
                             "type":"FLAP_SENSOR",
@@ -300,17 +279,22 @@ class CubeConnection:
                             "flapSensorPosition":data["value"]
                         }
 
-                elif t=="SERVO_OUTPUT_RAW":
+                case "SERVO_OUTPUT_RAW": ### change here to ACTUATOR_OUTPUT_STATUS?
                     try:
-                        
+                        rawToAngle = lambda a : (a-1100) * 90/900 # check.  Might be better to use scaled outputs instead
                         msg = {
                             "type":"SERVO_OUTPUT_RAW",
-                            "flapRequested":90*(data["servo10_raw"]-1100) / 900
+                            #"flapRequested":90*(data["servo10_raw"]-1100) / 900,
+                            "flapRequested":rawToAngle(data["servo10_raw"]),
+                            "aileronL":rawToAngle(data["servo2_raw"]),
+                            "aileronR":rawToAngle(data["servo3_raw"]),
+                            "rudder":rawToAngle(data["servo4_raw"]),
+                            "elevator":rawToAngle(data["servo5_raw"]) # change servo outputs later when final assembly completed
                         }
                         
                     except:
                         print(data)
-                elif t=="ATTITUDE":
+                case "ATTITUDE":
                     msg = {
                         "type":"ATTITUDE",
                         "time_boot_ms":data["time_boot_ms"],
@@ -320,8 +304,8 @@ class CubeConnection:
                     }
 
                 
-                if msg is not None and websocket is not None:
-                    await websocket.send(json.dumps(msg))   
+            if msg is not None and websocket is not None:
+                await websocket.send(json.dumps(msg))   
 
             self.log(data)
             await asyncio.sleep(refresh_time) ## poll through messages
@@ -329,14 +313,28 @@ class CubeConnection:
     def log(self, data):
         pass
     async def handle(self, message):
-        '''deal with incoming messages from the websocket'''
+        '''
+        deal with incoming messages from the websocket
+        should simplify later -> could be done better with a match/case 
+        Should have the FE send a request like
+        {
+        "type":"request",
+        "request":"flap/arm/override etc.",
+        "value":123
+        }
+        rather than
+        {
+        "type":"request",
+        "flap":5
+        }
+        '''
         try:
             
             msg = json.loads(message)
             
-            print(msg)
+            print(msg) 
             if 'flap' in msg:
-                self._sendFlapRequest(int(msg['flap']))
+                self._sendFlapRequest(int(msg['flap']))  # angle in degrees?
             if 'arm' in msg:
                 print("arming", bool(msg['arm']))
                 self._sendArmRequest(bool(msg['arm']))
@@ -350,119 +348,12 @@ class CubeConnection:
                 self.clear_rc_override()
             if 'mode' in msg:
                 print("changing mode")
-                # Example: { "mode": "MANUAL" }
+                # Example: { "mode": 81 }
                 try:
-                    mode = FlightMode[msg['mode'].upper()]
-                    #self._set_mode(mode)
+                    self._set_mode(msg['mode'])
                 except:
                     print("invalid flight mode for message %s", msg)
             #response = self.connection.recv_match(type="COMMAND_ACK", blocking=True)
             #print(response)
         except Exception as E:
             print("Error\n"+E)
-            
-            
-    # def update(self, websocket):
-    #     '''take returned data from updateStatus and then send to the websocket'''
-
-    #     #### change this to process each heartbeat message
-    #     print("starting looop")
-    #     asyncio.gather(self.getMessageLoop(websocket=websocket))
-    #     # asyncio.gather(
-    #     #     self.servo_loop(websocket),
-    #     #     self.heartbeat_loop(websocket),
-    #     #     #self.flapSensor_loop(websocket),
-    #     #     self.attitude_loop(websocket),
-    #     # )   
-    
-    
-
-    # async def attitude_loop(self, websocket):
-    #     '''Function to continually update attitude data and return it'''
-    #     self.changeDataRate(30, self.refresh_attitude)
-        
-    #     while True:
-    #         print("attitude")           
-    #         if not self.testing:
-    #             data = await asyncRecvMatch(self.connection, type="ATTITUDE", blocking=self.blocking)  # get attitude info
-    #         data = {
-    #             "type":"ATTITUDE",
-    #             "time_boot_ms":data["time_boot_ms"],
-    #             "roll":data["roll"],
-    #             "pitch":data["pitch"],
-    #             "yaw":data["yaw"]
-    #         }
-    #         await websocket.send(json.dumps(data))
-    #         await asyncio.sleep(self.refresh_attitude/self.refresh_check)
-    
-    # async def servo_loop(self, websocket):
-    #     '''Continually update flap request data
-    #     type="SERVO_OUTPUT_RAW"
-    #     '''
-    #     print("servooutput")
-    #     self.changeDataRate(36, self.refresh_servo)
-    #     while True:
-    #         if not self.testing:
-    #             data = await asyncRecvMatch(self.connection, type="SERVO_OUTPUT_RAW", blocking=self.blocking) 
-    #         data = {
-    #             "type":"SERVO_OUTPUT_RAW",
-    #             "flapRequested":data["servo10_raw"]
-    #         }
-
-    #         await websocket.send(json.dumps(data))
-    #         await asyncio.sleep(self.refresh_servo/self.refresh_check)
-
-    # async def flapSensor_loop(self, websocket):
-    #     '''
-    #     ADD FLAP SENSOR FETCHING CODE HERE
-    #     FOR NOW ASSUMING ONLY ONE FLAP SENSOR
-    #     '''
-    #     flapSensorPosition = random.randint(0, 360)
-    #     while True:
-    #         print("flapsensor")
-    #         if not self.testing:
-    #             #### get the flap sensor position in this if statement!
-    #             data = await asyncRecvMatch(self.connection, type="NAMED_VALUE_FLOAT", blocking=self.blocking) 
-    #             flapSensorPosition = data["value"]
-    #             #### should work, could you double check if I messed sth up     - Mate
-    #         flapSensorMessage = {
-    #             "type":"FLAP_SENSOR",
-    #             "flapSensorPosition": flapSensorPosition
-    #         }
-
-    #         await websocket.send(json.dumps(flapSensorMessage))
-    #         await asyncio.sleep((1/2)/self.refresh_check) # get update every half second
-             
-                
-
-    # async def heartbeat_loop(self, websocket):
-    #     self.changeDataRate(0, self.refresh_heartbeat)
-    #     while True:
-    #         print("Heartbeat")
-    #         if not self.testing:
-    #             data = await asyncRecvMatch(self.connection, type="HEARTBEAT", blocking=self.blocking) 
-                
-    #         data = {
-    #             "type":"HEARTBEAT",
-    #             "mode":data["base_mode"],
-    #             "connected":True,
-    #             "armed":self.connection.motors_armed()
-    #         }
-    #         print(data)
-    
-    #         await websocket.send(json.dumps(data))
-    #         await asyncio.sleep(self.refresh_heartbeat/self.refresh_check)
-    
-    # async def command_ack_loop(self):
-    #     while True:
-    #         data = await asyncRecvMatch(self.connection, type="COMMAND_ACK", blocking=self.blocking) 
-    #         print(data)
-    #         await asyncio.sleep(0.25)
-    
-
-
-            
-        
-
-        
-        

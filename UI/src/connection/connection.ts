@@ -1,11 +1,6 @@
 import sendFlapRequest from "./request/sendFlapRequest";
-// type DroneData = {
-//     roll: number | null;
-//     pitch: number | null;
-//     time_boot_ms: number | null
-// };
-///// lots of this was done in chatgpt
-// Types: ATTITUDE, SERVO_OUTPUT_RAW, HEARTBEAT
+
+
 type DroneData = {
     roll: number | undefined;
     pitch: number | undefined;
@@ -15,6 +10,10 @@ type DroneData = {
     armed: boolean | undefined;
     flapRequestStatus: number | undefined;
     flapSensorPosition: number | undefined;
+    servoAileronL: number | undefined;
+    servoAileronR: number | undefined;
+    servoRudder: number | undefined;
+    servoElevator: number | undefined;
     errorMessages: string[]
 };
 
@@ -35,31 +34,46 @@ const connectWebSocket = (url: string) => {
     socket.onmessage = (event: MessageEvent) => {
 
         var newData = JSON.parse(event.data);
-        if (newData.type=="ATTITUDE"){
-            latestData.time_boot_ms = newData.time_boot_ms
-            latestData.pitch = newData.pitch
-            latestData.roll = newData.roll
-            latestData.yaw = newData.yaw
-        }
-        else if (newData.type === "HEARTBEAT"){
-            console.log(newData)
-            latestData.mode = newData.mode
-            latestData.armed = Boolean(newData.armed)
-        } else if (newData.type === "SERVO_OUTPUT_RAW") {
-            //console.log(newData.flapRequested)
-            latestData.flapRequestStatus = newData.flapRequested
-        } else if (newData.type === "ERROR"){
-            console.log(newData)
-            latestData.errorMessages= latestData.errorMessages ? [...latestData.errorMessages, newData.message] : [newData.message]
-            
-        } else if (newData.type === "FLAP_SENSOR"){
-            console.log(newData)
-            latestData.flapSensorPosition = newData.flapSensorPosition
-        } else {
-            console.log(event.data)
+        switch (newData.type){
+            case "ATTITUDE":
+                latestData.time_boot_ms = newData.time_boot_ms;
+                latestData.pitch = newData.pitch;
+                latestData.roll = newData.roll;
+                latestData.yaw = newData.yaw;
+                break;
+    
+            case "HEARTBEAT":
+                console.log(newData);
+                latestData.mode = newData.mode;
+                latestData.armed = Boolean(newData.armed);
+                break;
+
+            case "SERVO_OUTPUT_RAW":
+                latestData.flapRequestStatus = newData.flapRequested;
+                latestData.servoAileronL = newData.aileronL;
+                latestData.servoAileronR = newData.aileronR;
+                latestData.servoRudder = newData.rudder;
+                latestData.servoElevator = newData.elevator;
+                break;
+
+            case "ERROR":
+                console.log(newData);
+                latestData.errorMessages =  [...latestData.errorMessages, newData.message]
+
+                break;
+
+            case "FLAP_SENSOR":
+                console.log(newData);
+                latestData.flapSensorPosition = newData.flapSensorPosition;
+                break;
+
+            default:
+                console.log(event.data);
+                break;
         }
         
-        n = n+1
+        
+        n += 1
     };
 
     socket.onclose = () => {
