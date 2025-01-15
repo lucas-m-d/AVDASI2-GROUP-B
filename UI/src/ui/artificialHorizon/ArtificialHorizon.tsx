@@ -23,8 +23,10 @@ interface ArtificialHorizonProps {
 
 export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null)
-    const width = window.innerWidth/3 - 15
-    const height = width
+
+    const height = window.innerWidth/3 - 15 
+
+    const width = height - 100
     //var roll = roll * Math.PI/180;
     const barPadding = [0.42, 0.35, 0.275]
     const midTriangleWidth = 80
@@ -157,6 +159,7 @@ export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps)
 
     return (
     <div>
+        <canvas id="gcs-artificial-horizon" ref={canvasRef} width={width} height={height} />
         {roll !== undefined ? (
                 <p>Roll: {(roll! * 180 / Math.PI).toFixed(2)} deg</p>
             ) : (
@@ -168,7 +171,6 @@ export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps)
             ) : (
                 <p>No pitch data available</p>
         )}
-        <canvas id="gcs-artificial-horizon" ref={canvasRef} width={width} height={height} />
     </div>
 )
     

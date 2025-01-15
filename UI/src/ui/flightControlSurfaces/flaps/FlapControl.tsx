@@ -37,17 +37,18 @@ const flapSettings: flapPosition[] = [
 interface FlapControlProps {
     min : number,
     max : number,
-    posArray : [number?, number?]
+    posArray : [number?, number?],
+    requested : number | undefined
 }
 
-export function FlapControl({min, max, posArray} : FlapControlProps) {
+export function FlapControl({min, max, posArray, requested} : FlapControlProps) {
 
     const [commandedFlap, setCommandedFlap] = useState<number | undefined>(undefined)
     const [showFlap, setShowFlap] = useState<number>(commandedFlap ? commandedFlap : 0)
     
     const [customFlapInputValue, setCustomFlapInputValue] = useState<number>(0)
     // todo: require enter key and handle bad values
-    
+    requested = requested ?? 0
     const handleSliderChange = (event: Event, newValue: number | number[]) => {
         setCommandedFlap(newValue as number);
         setShowFlap(newValue as number)
@@ -119,8 +120,8 @@ export function FlapControl({min, max, posArray} : FlapControlProps) {
                     </div>
                     <div>
                         <Typography variant="h6" align="center">FLAP GAUGES</Typography>
-                        <FlapIndicator min={min} max={max} request={commandedFlap} position={posArray} />
-                        <br /> Flap position value = {posArray[0]} {posArray[0] == undefined && (<div style={{display:"inline-block"}}>unknown</div>)}
+                        <FlapIndicator min={min} max={max} request={requested} position={posArray} />
+                        <br /> Flap position value = {Math.round(posArray[0]!)} {posArray[0] == undefined && (<div style={{display:"inline-block"}}>unknown</div>)}
                         <br /> <br />Set max/min flap positions by going to: <br />"./src/App.tsx" and editing the <br />{"<FlapControl min={0} max={90} />"} line
                     </div>
             </Stack> 

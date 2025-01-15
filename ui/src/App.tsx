@@ -6,9 +6,11 @@ import Grid from "@mui/material/Grid2"
 import { connectWebSocket, getDataRate, latestData, socket } from "./connection/connection";
 import ArtificialHorizon from "./ui/artificialHorizon/ArtificialHorizon";
 import ArmButton from "./ui/arm/ArmButton";
-import { RCModeButton, RCWifiSwitch } from "./ui/RC/RCModeButtons";
+import { RCModeControls, RCWifiSwitch } from "./ui/RC/RCModeButtons";
 import RCSendControl from "./ui/RC/RCSendControl";
 import LivePlot from "./ui/dataHistory/LivePlot"; 
+import HorizontalIndicator from "./ui/flightControlSurfaces/shared/HorizontalIndicator";
+import FlightControlIndicators from "./ui/flightControlSurfaces/indicator/FlightControlIndicators";
 
 export default function App() {
     const [data, setData] = useState(latestData);
@@ -27,6 +29,7 @@ export default function App() {
         const intervalId1 = setInterval(() => {
             // Ensure latestData is updated correctly
             setData({ ...latestData });
+            //console.log(latestData.flapSensorPosition)
         }, dataRefreshRate);
 
         // Socket connection status interval
@@ -48,22 +51,22 @@ export default function App() {
             
         <Grid container spacing={1}>
             {/* WebSocket status display */}
-            <div>
-                WebSocket status = {socketState ? "connected" : "disconnected"}
-                {!socketState && (
-                    <div>
-                        <br /> If UI is disconnected but TMS has a connection, please refresh the page.
-                    </div>
-                )}
-            </div>
-
-            {/* Autopilot Panel */}
-            <Grid size={12} component="div">
-                <AutopilotPanel />
+            <Grid size={12}>
+                <div>
+                    WebSocket status = {socketState ? "connected" : "disconnected"}
+                    {!socketState && (
+                            <p>If UI is disconnected but TMS has a connection, please refresh the page.</p>
+                    )}
+                </div>
             </Grid>
 
+            {/* Autopilot Panel
+            <Grid size={12} component="div">
+                <AutopilotPanel />
+            </Grid> */}
+
             {/* Artificial Horizon Display */}
-            <Grid size={6} component="div">
+            <Grid size={3.5} component="div">
                 {testing ? (
                     <TestArtificialHorizon />
                 ) : (
@@ -71,33 +74,46 @@ export default function App() {
                 )}
             </Grid>
 
-            {/* Flap Control */}
-            <Grid size={3} component="div">
-                <FlapControl min={0} max={90} posArray={[data.flapSensorPosition, data.flapSensorPosition]} />
+            {/* RC Mode Controls, indicators */}
+            <Grid size={1.75} component="div">
+                <RCModeControls mode={18} />
+                <div style={{ marginTop: "20px" }}>
+                <FlightControlIndicators ailL={undefined} ailR={undefined} elev={50} rud={-50}/>
+                </div>
             </Grid>
 
-            {/* Data Rate and Time Display */}
-            <Grid size={1} component="div">
-                <p>
-                    Data rate: {dr.current[0]}<br />
-                    Data time: {dr.current[1]}
-                </p>
+            <Grid size={0.25} /> {/*Add some space */}
+
+            {/* Flap Control */}
+            <Grid size={2.5} component="div">
+                <FlapControl min={0} max={360} requested={data.flapRequestStatus} posArray={[data.flapSensorPosition, data.flapSensorPosition]} />
             </Grid>
+
+            
 
             {/* RC Send Control */}
             <Grid size={2} component="div">
                 <RCSendControl />
             </Grid>
+            
+            <Grid size={2}>
+                Errors:
+                {latestData.errorMessages && latestData.errorMessages.map((msg, i) => {
+                    return(
+                        <div key={i}>
+                            {msg}
+                        </div>
+                    )
+                })}
+            </Grid>
 
             {/* Arm Button */}
             <Grid size={3} component="div">
+                currently armed? {latestData.armed ? "yes" : "no"}
                 <ArmButton armStatus={latestData.armed} />
             </Grid>
 
-            {/* RC Mode Button */}
-            <Grid size={3} component="div">
-                <RCModeButton mode={latestData.mode} />
-            </Grid>
+            
 
             {/* LivePlot Component */}
             <Grid size={12}>

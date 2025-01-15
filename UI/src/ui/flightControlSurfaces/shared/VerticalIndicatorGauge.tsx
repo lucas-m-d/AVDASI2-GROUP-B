@@ -16,7 +16,7 @@ const IndicatorStyle = {
     triangleHeight:5
 }
 
-export default function IndicatorGauge({min, max, request, position}:IndicatorProps){
+export default function VerticalIndicatorGauge({min, max, request, position}:IndicatorProps){
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const width=250
     const height=250

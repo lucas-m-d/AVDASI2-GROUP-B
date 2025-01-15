@@ -1,29 +1,51 @@
 import {useState} from 'react';
 import { Button } from '@mui/material';
 import { sendRCModeRequest } from '../../connection/request/sendRCRequest';
+import { modeFlags } from '../../mavlink/modeFlags';
+import Grid from '@mui/material/Grid2';
 
-interface RCModeButtonProps {
-    mode: "MANUAL" | "STABILISE" | undefined
+
+interface RCModeControlsProps {
+    mode: number | undefined
 }
 
-export function RCModeButton({ mode }: RCModeButtonProps) {
-    const handleChangeMode = () => {
-        if (mode !== undefined) {
-            const newMode = mode === "MANUAL" ? "STABILISE" : "MANUAL";
-            sendRCModeRequest(newMode);
-        }
+
+export function RCModeControls({ mode }: RCModeControlsProps) {
+    const modeFlagNames = Object.values(modeFlags).slice(0, 8); // get names of mode flags
+
+    const handleChangeMode = (e) => {
+            if (mode != undefined) { 
+                const reqModeFlip = parseInt(e.target.value)
+                const nextMode = (mode! & reqModeFlip) ? // e.target.value is a number
+                
+                    // if button value is in current mode
+                    mode! - reqModeFlip :
+                    // if button value is NOT in current mode
+                    mode! + reqModeFlip
+
+                sendRCModeRequest(nextMode);
+            }
     };
 
     return (
         <div>
-            <p>CURRENT AP MODE: {mode || "UNKNOWN"}</p>
-            <Button
-                variant="contained"
-                onClick={handleChangeMode}
-                disabled={mode === undefined}
-            >
-                {`Set mode to ${mode === "MANUAL" ? "STABILISE" : "MANUAL"}`}
-            </Button>
+            <Grid container>
+                {modeFlagNames.map((flag) => // generate button for each mode flag
+                    ( 
+                        <Grid size={12} key={flag}>
+                            <Button
+                                fullWidth
+                                variant="contained"
+                                onClick={handleChangeMode}
+                                disabled={mode === undefined}
+                                value={modeFlags[flag]}
+                                color={(mode===undefined) ? "inherit" : ((mode & modeFlags[flag]) ? "success" : "error")} 
+                            >
+                                {flag}
+                            </Button>
+                        </Grid>
+                    ))}
+            </Grid>
         </div>
     );
 }

@@ -17,16 +17,17 @@ export function sendOverrideRCRequest(overrideArr : number[]){
 
 interface RCModeRequestType {
     type: string,
-    mode: "MANUAL" | "STABILISE"
+    mode: number
 }
 
-export function sendRCModeRequest(mode : "MANUAL" | "STABILISE"){
+export function sendRCModeRequest(mode : number){
 
     if (socket) {
         const request: RCModeRequestType = {
             type: "request",
             mode: mode
         };
+        console.log(JSON.stringify(request));
         (socket.readyState == socket.OPEN) ? socket.send(JSON.stringify(request)) : console.log("no socket connection")
     }
 } 

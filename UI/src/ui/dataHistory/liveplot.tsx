@@ -84,7 +84,7 @@
 // }
 import { useState, useEffect } from "react";
 import { latestData } from "../../connection/connection";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 
 type  LivePlotDataPoint={
     "time_boot_ms":number|undefined;
@@ -133,7 +133,7 @@ export default function LivePlot() {
             });
             }
             
-        }, 1000 / 10); // Update at 10 Hz
+        }, 1000 / 20); // Update at 10 Hz
 
         return () => {
             clearInterval(intervalId)
