@@ -5,6 +5,7 @@ import math
 import asyncio
 import json
 from enum import Enum
+from .Logger import Logger
 
 class FlightMode(Enum):
     MANUAL = 0
@@ -53,6 +54,7 @@ class CubeConnection:
         self.refresh_check = 3
         self.blocking = True
         # set up a connection here to the cubepilot
+        self.logger = Logger()
         
             
         self.time = time.time()
@@ -71,6 +73,10 @@ class CubeConnection:
             
                 
                 self.flap_pins = [10]
+
+                # write params changing servo min and max
+                #self.connection.mav.
+
                 self.initialised.set()
             else:
                 
@@ -122,13 +128,16 @@ class CubeConnection:
         :param mode: FlightMode Enum (e.g., FlightMode.MANUAL or FlightMode.STABILISE)
         """
         try: # investigate - https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_MODE 
-            self.connection.mav.command_long_send(
-                self.connection.target_system,
-                self.connection.target_component,
-                mavutil.mavlink.MAV_CMD_DO_SET_MODE,
-                mode,
-                0, 0, 0, 0, 0, 0
-            )
+            print("hereasdfasdf")
+            # self.connection.mav.command_long_send(
+            #     self.connection.target_system,
+            #     self.connection.target_component,
+            #     mavutil.mavlink.MAV_CMD_DO_SET_MODE,
+            #     0, 
+            #     0, mode, 0, 0, 0, 0, 0
+            # )
+            
+            self.connection.mav.set_mode_send(self.connection.target_system, mode, 1)
            
 
         except Exception as e:
@@ -178,7 +187,7 @@ class CubeConnection:
                     self.connection.target_component,
                         mavutil.mavlink.MAV_CMD_DO_SET_SERVO,
                         1,
-                        10,
+                        2,
                         (pwm_command),
                         0,0,0,0,0
                 )
@@ -191,22 +200,18 @@ class CubeConnection:
         pass
     
     def _sendArmRequest(self, arm):
-        req = 0
-        if arm:
-            req = 1
-        try:
-            self.connection.mav.command_long_send(
-                self.connection.target_system,
-                self.connection.target_component,
-                mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
-                0,
-            req, 0, 0, 0, 0, 0, 0)
-
-
-        except Exception as e:
-            print("error sending arm request message")
-            print(e)
+        print("sending request")
         
+        print("arm request", arm)
+        self.connection.mav.command_long_send(
+            self.connection.target_system,
+            self.connection.target_component,
+            mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+            0,
+            int(arm), 21196, 0, 0, 0, 0, 0)
+        
+        
+
 
     def update(self, websocket):
         asyncio.gather(self.messageLoop(websocket=websocket))
@@ -215,6 +220,13 @@ class CubeConnection:
         refresh_time = 0.005
         #MESSAGE_TYPES = ["HEARTBEAT", "COMMAND_ACK", "NAMED_VALUE_FLOAT", "SERVO_OUTPUT_RAW", "ATTITUDE"]
         self.connection.mav.set_mode_send(self.connection.target_system, mavutil.mavlink.MAV_MODE_FLAG_DECODE_POSITION_SAFETY, 0) ## turn off safety
+
+        self.connection.mav.command_long_send(
+            self.connection.target_system,
+            self.connection.target_component,
+            mavutil.mavlink.MAV_CMD_RUN_PREARM_CHECKS,
+            0,0,0,0,0,0,0,0
+        )
         ## change data rates
         self.changeDataRate(0, self.refresh_heartbeat) 
         self.changeDataRate(36, self.refresh_servo)
@@ -233,8 +245,28 @@ class CubeConnection:
             1,
             mavutil.mavlink.MAV_PARAM_TYPE_REAL32
         )
-
-        init_flap = None
+        self.connection.mav.param_set_send(
+            self.connection.target_system,
+            self.connection.target_component,
+            b'ARMING_CHECK',
+            0,
+            mavutil.mavlink.MAV_PARAM_TYPE_REAL32
+        )
+        # self.connection.mav.command_long_send(
+        #     self.connection.target_system,
+        #     self.connection.target_component,
+        #     mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+        #     0,1,0,0,0,0,0,0
+        # )
+        # self.connection.mav.command_long_send(
+        #     self.connection.target_system,
+        #     self.connection.target_component,
+        #     mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+        #     0,1,21196,0,0,0,0,0
+        # )
+        
+        
+        
 
         while True:
             m = self.connection.recv_msg()
@@ -254,6 +286,8 @@ class CubeConnection:
                         "armed":self.connection.motors_armed()
                     }
                     print("armed: ", self.connection.motors_armed())
+                    self.logger.log(connected=True, armed=self.connection.motors_armed(), mode=data["base_mode"])
+                    
 
                 case "COMMAND_ACK":
                     if data["command"] == 511:
@@ -269,8 +303,12 @@ class CubeConnection:
                             "type":"ERROR",
                             "message":f'Error failed for message command {data["command"]} with status {data["result"]}'
                         }
+                        if data["result"] == 2:
+                            print("DENIED")
+                        elif data["result"] ==4:
+                            print("COMMAND FAILED")
 
-
+                    self.logger.log(command=data["command"], command_result=data["result"])
                 case "NAMED_VALUE_FLOAT":
                     if data["name"] == "Sensor":
                         msg = {
@@ -278,22 +316,24 @@ class CubeConnection:
                             "time_boot_ms":data['time_boot_ms'],
                             "flapSensorPosition":data["value"]
                         }
+                    self.logger.log(time_boot_ms=data["time_boot_ms"], flapSensorPosition=data["value"])
 
                 case "SERVO_OUTPUT_RAW": ### change here to ACTUATOR_OUTPUT_STATUS?
                     try:
                         rawToAngle = lambda a : (a-1100) * 90/900 # check.  Might be better to use scaled outputs instead
                         msg = {
                             "type":"SERVO_OUTPUT_RAW",
-                            #"flapRequested":90*(data["servo10_raw"]-1100) / 900,
                             "flapRequested":rawToAngle(data["servo10_raw"]),
                             "aileronL":rawToAngle(data["servo2_raw"]),
                             "aileronR":rawToAngle(data["servo3_raw"]),
                             "rudder":rawToAngle(data["servo4_raw"]),
                             "elevator":rawToAngle(data["servo5_raw"]) # change servo outputs later when final assembly completed
                         }
-                        
+
                     except:
                         print(data)
+                    self.logger.log(aileronL=msg["aileronL"], flapRequested=msg["flapRequested"], aileronR=msg["aileronR"], rudder=msg["rudder"], elevator=msg["elevator"])
+
                 case "ATTITUDE":
                     msg = {
                         "type":"ATTITUDE",
@@ -302,16 +342,15 @@ class CubeConnection:
                         "pitch":data["pitch"],
                         "yaw":data["yaw"]
                     }
-
+                    self.logger.log(roll=msg["roll"], pitch=msg["pitch"], yaw=msg["yaw"])
                 
             if msg is not None and websocket is not None:
                 await websocket.send(json.dumps(msg))   
 
-            self.log(data)
+            #self.logger.log(data)
             await asyncio.sleep(refresh_time) ## poll through messages
 
-    def log(self, data):
-        pass
+
     async def handle(self, message):
         '''
         deal with incoming messages from the websocket

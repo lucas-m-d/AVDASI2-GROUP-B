@@ -14,7 +14,7 @@ type DroneData = {
     servoAileronR: number | undefined;
     servoRudder: number | undefined;
     servoElevator: number | undefined;
-    errorMessages: string[]
+    errorMessages: Array<string | undefined>;
 };
 
 
@@ -58,7 +58,7 @@ const connectWebSocket = (url: string) => {
 
             case "ERROR":
                 console.log(newData);
-                latestData.errorMessages =  [...latestData.errorMessages, newData.message]
+                //latestData.errorMessages =  [...latestData.errorMessages!, newData.message]
 
                 break;
 
@@ -82,9 +82,6 @@ const connectWebSocket = (url: string) => {
     };
 };
 
-const getLatestData = (): DroneData | null => {
-    return latestData; // This function is stupid and will get rid of
-};
 
 export const getDataRate = () => {
     return [n / (Date.now() - startTime), latestData?.time_boot_ms!*1000] 
@@ -96,4 +93,4 @@ const closeWebSocket = () => {
     }
 };
 
-export { connectWebSocket, getLatestData, closeWebSocket };
+export { connectWebSocket, closeWebSocket };

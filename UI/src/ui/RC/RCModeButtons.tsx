@@ -22,8 +22,8 @@ export function RCModeControls({ mode }: RCModeControlsProps) {
                     mode! - reqModeFlip :
                     // if button value is NOT in current mode
                     mode! + reqModeFlip
-
-                sendRCModeRequest(nextMode);
+                console.log(reqModeFlip)
+                sendRCModeRequest(reqModeFlip);
             }
     };
 

@@ -8,7 +8,7 @@ import ArtificialHorizon from "./ui/artificialHorizon/ArtificialHorizon";
 import ArmButton from "./ui/arm/ArmButton";
 import { RCModeControls, RCWifiSwitch } from "./ui/RC/RCModeButtons";
 import RCSendControl from "./ui/RC/RCSendControl";
-import LivePlot from "./ui/dataHistory/LivePlot"; 
+import LivePlot from "./ui/dataHistory/liveplot"; 
 import HorizontalIndicator from "./ui/flightControlSurfaces/shared/HorizontalIndicator";
 import FlightControlIndicators from "./ui/flightControlSurfaces/indicator/FlightControlIndicators";
 
@@ -76,7 +76,7 @@ export default function App() {
 
             {/* RC Mode Controls, indicators */}
             <Grid size={1.75} component="div">
-                <RCModeControls mode={18} />
+                <RCModeControls mode={latestData.mode} />
                 <div style={{ marginTop: "20px" }}>
                 <FlightControlIndicators ailL={undefined} ailR={undefined} elev={50} rud={-50}/>
                 </div>
