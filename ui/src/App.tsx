@@ -1,15 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import TestArtificialHorizon from "./ui/artificialHorizon/testArtificialHorizon";
 import { FlapControl } from "./ui/flightControlSurfaces/flaps/FlapControl";
-import AutopilotPanel from "./ui/autopilotPanel/AutopilotPanel";
+//import AutopilotPanel from "./ui/autopilotPanel/AutopilotPanel";
 import Grid from "@mui/material/Grid2"
-import { connectWebSocket, getDataRate, latestData, socket } from "./connection/connection";
+import { connectWebSocket,  latestData, socket, clearData } from "./connection/connection";
 import ArtificialHorizon from "./ui/artificialHorizon/ArtificialHorizon";
 import ArmButton from "./ui/arm/ArmButton";
-import { RCModeControls, RCWifiSwitch } from "./ui/RC/RCModeButtons";
+import { RCModeControls /*, RCWifiSwitch*/ } from "./ui/RC/RCModeButtons";
 import RCSendControl from "./ui/RC/RCSendControl";
-import LivePlot from "./ui/dataHistory/liveplot"; 
-import HorizontalIndicator from "./ui/flightControlSurfaces/shared/HorizontalIndicator";
+import {LivePlotMemoized} from "./ui/dataHistory/LivePlot"; 
 import FlightControlIndicators from "./ui/flightControlSurfaces/indicator/FlightControlIndicators";
 
 export default function App() {
@@ -17,9 +16,8 @@ export default function App() {
     const [socketState, setSocketState] = useState(false); // Default to false, to handle unconnected state
     const dataRefreshRate = 1000 / 20; // Update data every 50ms
     const socketRefreshRate = 1000 / 500; // Check socket state every 2ms
-
     // Ref for data rate
-    const dr = useRef(getDataRate());
+    //const dr = useRef(getDataRate());
 
     useEffect(() => {
         // Establish WebSocket connection
@@ -38,11 +36,18 @@ export default function App() {
             setSocketState(socket && socket.readyState === 1);
         }, socketRefreshRate);
 
+        
+
         return () => {
             clearInterval(intervalId1);
             clearInterval(intervalId2);
         };
     }, [dataRefreshRate, socketRefreshRate]);
+
+    // on first load, clear data arrays (save memory)
+    useEffect(() => {
+        clearData()
+    })
 
     const testing = false;
 
@@ -78,7 +83,7 @@ export default function App() {
             <Grid size={1.75} component="div">
                 <RCModeControls mode={latestData.mode} />
                 <div style={{ marginTop: "20px" }}>
-                <FlightControlIndicators ailL={undefined} ailR={undefined} elev={50} rud={-50}/>
+                <FlightControlIndicators ailL={latestData.servoAileronL} ailR={latestData.servoAileronR} elev={latestData.servoElevator} rud={latestData.servoRudder}/>
                 </div>
             </Grid>
 
@@ -117,7 +122,7 @@ export default function App() {
 
             {/* LivePlot Component */}
             <Grid size={12}>
-                <LivePlot />
+                <LivePlotMemoized />
             </Grid>
             
         </Grid>

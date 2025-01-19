@@ -21,7 +21,6 @@ const HorizontalIndicatorStyle = {
 
 export default function HorizontalIndicator ({min, max, current, id, width, height} : HorizontalIndicatorProps){
     const canvasRef = useRef<HTMLCanvasElement>(null)
-    const canvas = canvasRef.current
 
     width = width ? width : "100%";
     height = height ? height : 70;

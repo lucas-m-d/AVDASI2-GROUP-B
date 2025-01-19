@@ -1,0 +1,17 @@
+https://mavlink.io/en/messages/common.html#MAV_CMD_PREFLIGHT_CALIBRATION
+MAV_CMD_PREFLIGHT_STORAGE 
+
+MAV_CMD_CONDITION_YAW (115) 
+MAV_CMD_CONDITION_LAST (159) 
+
+MAV_CMD_DO_AUTOTUNE_ENABLE (212)
+MAV_CMD_NAV_SET_YAW_SPEED (213) 
+
+MAV_CMD_ACTUATOR_TEST (310) 
+MAV_CMD_CONFIGURE_ACTUATOR (311) 
+MAV_CMD_COMPONENT_ARM_DISARM (400) 
+
+
+https://ardupilot.org/plane/docs/parameters.html#fltmode1
+https://ardupilot.org/dev/docs/mavlink-arming-and-disarming.html
+https://ardupilot.org/dev/docs/mavlink-get-set-flightmode.html

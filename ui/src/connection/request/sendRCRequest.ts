@@ -1,5 +1,14 @@
 import { socket } from '../connection';
 
+
+
+export enum RCWifiControlTypes {
+    RC = "RC",
+    WiFi = "WiFi"
+}
+
+
+
 interface OverrideRCRequestType {
     type: string,
     override: number[]
@@ -11,7 +20,7 @@ export function sendOverrideRCRequest(overrideArr : number[]){
             type: "request",
             override: overrideArr
         };
-        (socket.readyState == socket.OPEN) ? socket.send(JSON.stringify(request)) : console.log("no socket connection")
+        (socket.readyState === socket.OPEN) ? socket.send(JSON.stringify(request)) : console.log("no socket connection")
     }
 } 
 
@@ -28,25 +37,7 @@ export function sendRCModeRequest(mode : number){
             mode: mode
         };
         console.log(JSON.stringify(request));
-        (socket.readyState == socket.OPEN) ? socket.send(JSON.stringify(request)) : console.log("no socket connection")
+        (socket.readyState === socket.OPEN) ? socket.send(JSON.stringify(request)) : console.log("no socket connection")
     }
 } 
-export enum RCWifiControlTypes {
-    RC = "RC",
-    WiFi = "WiFi"
-}
-interface RCWiFiControlType {
-     type: string,
-     RCWiFiMode: RCWiFiControlType
-}
-
-// export function sendRCWifiSwitch(mode : RCWifiControlTypes) {
-//     if (socket) {
-//         const request: RCWiFiControlType = {
-//             type:"request",
-//             RCWiFiMode: mode
-//         }
-//         (socket.readyState == socket.OPEN) ? socket.send(JSON.stringify(request)) : console.log("no socket connection")
-//     }
-// }
 

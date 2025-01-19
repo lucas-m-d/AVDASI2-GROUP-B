@@ -1,6 +1,3 @@
-import sendFlapRequest from "./request/sendFlapRequest";
-
-
 type DroneData = {
     roll: number | undefined;
     pitch: number | undefined;
@@ -23,6 +20,11 @@ export let latestData: DroneData = {} as DroneData; // drone data where everythi
 export let dataHistory: Array<DroneData> = []
 const startTime = Date.now();
 var n = 0;
+
+export const clearData = () => {
+    latestData = {} as DroneData;
+    dataHistory = []
+}
 
 const connectWebSocket = (url: string) => {
     socket = new WebSocket(url);

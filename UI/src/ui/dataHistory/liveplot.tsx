@@ -1,92 +1,9 @@
-// import React, { useEffect, useState, useRef } from "react";
-// import { Line } from "react-chartjs-2";
-// import { Chart, ChartOptions, LinearScale, CategoryScale, Title, Tooltip, Legend } from "chart.js";
-
-// import { latestData } from "../../connection/connection";
-
-// // Register only the components necessary for line charts
-
-// Chart.register(LinearScale, CategoryScale, Title, Tooltip, Legend);
-// export default function LivePlot() {
-//     const chartRef = useRef<Chart | null>();
-
-//     const [data, setData] = useState({
-//         labels: [] as string[], // Typed as string array
-//         datasets: [
-//             {
-//                 label: "Angle (degrees)",
-//                 data: [] as number[], // Typed as number array
-//                 fill: false,
-//                 backgroundColor: "rgba(75,192,192,1)",
-//                 borderColor: "rgba(75,192,192,1)",
-//             },
-//         ],
-//     });
-
-//     const options: ChartOptions<'line'> = {
-//         responsive: true,
-//         maintainAspectRatio: false,
-//         scales: {
-//             x: {
-//                 type: "linear", // Explicitly set type as "linear" for the x-axis
-//                 position: "bottom",
-//             },
-//             y: {
-//                 type: "linear", // Explicitly set type as "linear" for the y-axis
-//                 beginAtZero: true,
-//                 title: {
-//                     display: true,
-//                     text: "Angle (°)",
-//                 },
-//             },
-//         },
-//     };
-
-//     useEffect(() => {
-//         const intervalId = setInterval(() => {
-//             const now = new Date().toISOString();
-            
-//             // Ensure flapSensorPosition has a default value of 0 if it's undefined or null
-//             const angle = latestData.flapSensorPosition ?? 0; 
-
-//             setData((prevData) => {
-//                 const newLabels = [...prevData.labels, now].slice(-20); // Limit to 20 points
-//                 const newData = [...prevData.datasets[0].data, angle].slice(-20); // Limit to 20 points
-
-//                 return {
-//                     ...prevData,
-//                     labels: newLabels,
-//                     datasets: [
-//                         {
-//                             ...prevData.datasets[0],
-//                             data: newData,
-//                         },
-//                     ],
-//                 };
-//             });
-//         }, 1000 / 20); // Update at 20 Hz
-
-//         return () => clearInterval(intervalId); // Clear the interval on component unmount
-//     }, []); // Empty dependency array, so it only runs on mount
-
-//     useEffect(() => {
-//         // Ensure chartRef.current is not null before accessing it
-//         if (chartRef.current) {
-//             chartRef.current.update(); // Manually trigger chart update if needed
-//         }
-//     }, [data]); // Update chart when data changes
-
-//     return (
-//         <div style={{ height: "300px", width: "100%", position: "relative" }}>
-//             <Line ref={chartRef} data={data} options={options} />
-//         </div>
-//     );
-// }
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo, useRef } from "react";
 import { latestData } from "../../connection/connection";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 
 type  LivePlotDataPoint={
+    "time":number|undefined
     "time_boot_ms":number|undefined;
     "time_boot_s":number|undefined;
     "flapPosition":number|undefined;
@@ -109,20 +26,20 @@ type  LivePlotDataPoint={
 //     { time_boot_ms: 900, flapPosition: 90 },
 //   ];
 
-export default function LivePlot() {
+export const LivePlotMemoized = memo(function LivePlot() {
 
     const [data, setData] = useState<LivePlotDataPoint[]>([])
+    const loadTime = useRef(Date.now())
 
     useEffect(() => {
         const intervalId = setInterval(() => {
             
-            var now = new Date().toISOString();
             
             // Ensure flapSensorPosition has a default value of 0 if it's undefined or null
             if (latestData.time_boot_ms !== undefined) {
-                var angle = latestData.flapSensorPosition ?? 0
                 setData((oldData) => {
                     var newData: LivePlotDataPoint = {
+                        "time":Date.now()-loadTime.current,
                         "time_boot_ms":latestData.time_boot_ms,
                         "time_boot_s":latestData.time_boot_ms!/1000,
                         "flapPosition":latestData.flapSensorPosition, // recharts deals with undefined by not plotting
@@ -133,7 +50,7 @@ export default function LivePlot() {
             });
             }
             
-        }, 1000 / 20); // Update at 10 Hz
+        }, 1000/5); // Update interval at minimum required 5Hz for performance.  High-fidelity csv data is saved in the TMS directory
 
         return () => {
             clearInterval(intervalId)
@@ -155,7 +72,7 @@ export default function LivePlot() {
                 >
 
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="time_boot_s" tickFormatter={((val) => {
+                    <XAxis dataKey="time" tickFormatter={((val) => {
                         return Math.floor(val/60) + "m"+ Math.round(val%60) + "s"
                     })}/>
                     <YAxis name="Degrees"/>
@@ -167,4 +84,4 @@ export default function LivePlot() {
             
             </div>
     )
-}
+})

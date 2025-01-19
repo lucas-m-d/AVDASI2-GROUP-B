@@ -9,6 +9,7 @@ import Button from '@mui/material/Button';
 import FlapIndicator from './FlapIndicator';
 //import testFlapIndicator from './testFlapIndicator';
 import sendFlapRequest from '../../../connection/request/sendFlapRequest';
+import { sendZeroSensorRequest } from '../../../connection/request/sendZeroSensorRequest';
 
 interface flapPosition {
     value: number,
@@ -66,20 +67,6 @@ export function FlapControl({min, max, posArray, requested} : FlapControlProps) 
         sendFlapRequest(commandedFlap)
     }, [commandedFlap])
 
-    // // THE FOLLOWING IS for debugging ONLY
-    // useEffect(() => {
-
-    //     testFlapIndicator(commandedFlap, currentFlap).then((val) => {
-    //         val && setCurrentFlap(val)
-    //     });
-    // },[commandedFlap])
-
-    
-    /// THE ABOVE IS FOR DEBUGGING ONLY
-
-    
-
-
     return (
         <Box sx={{width:300}}>
             
@@ -118,12 +105,23 @@ export function FlapControl({min, max, posArray, requested} : FlapControlProps) 
                         <Button variant="contained" onClick={handleSendCustomFlap}>SEND</Button>
                     </Stack>
                     </div>
-                    <div>
-                        <Typography variant="h6" align="center">FLAP GAUGES</Typography>
-                        <FlapIndicator min={min} max={max} request={requested} position={posArray} />
-                        <br /> Flap position value = {Math.round(posArray[0]!)} {posArray[0] == undefined && (<div style={{display:"inline-block"}}>unknown</div>)}
+                    <div style={{ justifyContent: "center",}}>
+                        <div style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}>
+                            <Typography variant="h5" align="center">FLAP GAUGES</Typography>
+                        </div>
+
+                        <div style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}>
+                            <FlapIndicator min={min} max={max} request={requested} position={posArray} />
+                        </div>
+
+                        <div style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}>
+                            <Button variant="contained" onClick={sendZeroSensorRequest}>ZERO SENSOR</Button>
+                        </div>
+                        
+                        <br /> Flap position value = {Math.round(posArray[0]!)} {posArray[0] === undefined && (<div style={{display:"inline-block"}}>unknown</div>)}
                         <br /> <br />Set max/min flap positions by going to: <br />"./src/App.tsx" and editing the <br />{"<FlapControl min={0} max={90} />"} line
                     </div>
+                    
             </Stack> 
             
         </Box>

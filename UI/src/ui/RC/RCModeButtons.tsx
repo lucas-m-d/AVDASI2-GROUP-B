@@ -14,16 +14,16 @@ export function RCModeControls({ mode }: RCModeControlsProps) {
     const modeFlagNames = Object.values(modeFlags).slice(0, 8); // get names of mode flags
 
     const handleChangeMode = (e) => {
-            if (mode != undefined) { 
+            if (mode !== undefined) { 
                 const reqModeFlip = parseInt(e.target.value)
                 const nextMode = (mode! & reqModeFlip) ? // e.target.value is a number
                 
                     // if button value is in current mode
-                    mode! - reqModeFlip :
+                    mode! & ~reqModeFlip :
                     // if button value is NOT in current mode
-                    mode! + reqModeFlip
+                    mode! | reqModeFlip
                 console.log(reqModeFlip)
-                sendRCModeRequest(reqModeFlip);
+                sendRCModeRequest(nextMode);
             }
     };
 

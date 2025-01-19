@@ -155,6 +155,7 @@ export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps)
                 context.save()
             }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [roll, pitch])
 
     return (

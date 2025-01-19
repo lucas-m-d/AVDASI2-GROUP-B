@@ -136,10 +136,10 @@ end
 
 
 function update()
-    gcs:send_text(6, "-----------------------------")   -- This way it looks nicer on the console, but will be removed for final software build
+    --gcs:send_text(6, "-----------------------------")   -- This way it looks nicer on the console, but will be removed for final software build
     verify()
     read_raw()
-    gcs:send_text(6, "-----------------------------")
+    --gcs:send_text(6, "-----------------------------") -- commenting these lines out so it doesn't flood the UI
     return update, 1000
 end
 
