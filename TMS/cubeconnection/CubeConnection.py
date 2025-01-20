@@ -14,27 +14,12 @@ class RCWifiControl(Enum):
     WiFi = 1
 
 class SERVO(Enum):
+    '''Configure the ports connected to the cube'''
     FLAP = 2
     ELEVATOR = 1
     AILERON_LEFT = 3
     AILERON_RIGHT = 4
     RUDDER = 5
-
-
-refresh_time = 0.05
-async def asyncRecvMatch(connection, type: str, blocking: bool=False):
-    ## blocking isn't necessary
-    
-    while True:
-        m = connection.recv_msg()
-        if m is None:
-            continue        
-        await asyncio.sleep(refresh_time) ## poll through messages
-        ## probably easier if there's just one massive message handler
-        
-        if type == m.get_type():
-            print(m)
-            return m.to_dict()
 
 class CubeConnection:
 
@@ -103,21 +88,22 @@ class CubeConnection:
                 rate_us,
                 0,0,0,0,0)
 
-    async def updateStatus(self): 
-        '''Function to continually update data and return the data'''
-        
-        if not self.testing:
-            data = await asyncRecvMatch(self.connection, type="ATTITUDE", blocking=True)  # get attitude info
-        
-        return {
-            "time_boot_ms":data["time_boot_ms"],
-            "roll":data["roll"],
-            "pitch":data["pitch"],
-            "yaw":data["yaw"]
-        }
-    
-    def zero_sensor(self):
-        pass
+    async def sendZeroSensorRequest(self):
+        self.connection.mav.param_set_send(
+            self.connection.target_system,
+            self.connection.target_component,
+            b'SENSOR_ZERO',
+            1,
+            mavutil.mavlink.MAV_PARAM_TYPE_REAL32
+        )
+        await asyncio.sleep(0.5) ## sleep for half a second and set the param back to 0 just to make sure
+        self.connection.mav.param_set_send(
+            self.connection.target_system,
+            self.connection.target_component,
+            b'SENSOR_ZERO',
+            1,
+            mavutil.mavlink.MAV_PARAM_TYPE_REAL32
+        )
 
     def set_mode(self, mode):
         """
@@ -178,8 +164,11 @@ class CubeConnection:
             0,
             int(arm), 21196, 0, 0, 0, 0, 0)
     
-    def sendFlapRequest(self, angle): ##todo
+    def sendAngle(self, servoReq, angle): ##todo
         print("requested angle:", angle)
+        if servoReq not in SERVO:
+            print("invalid request")
+
         servo_max_pos = 100
         pwm_command = 2000 - (angle * 2000 / servo_max_pos)
         
@@ -190,7 +179,7 @@ class CubeConnection:
                 self.connection.target_component,
                     mavutil.mavlink.MAV_CMD_DO_SET_SERVO,
                     1,
-                    SERVO.FLAP,
+                    servoReq,
                     (pwm_command),
                     0,0,0,0,0
             )            
@@ -260,10 +249,11 @@ class CubeConnection:
             if m is None:
                 continue        
 
-            t = m.get_type()
+            type = m.get_type()
             data = m.to_dict()
             msg = None
-            match t:
+
+            match type:
                 case "HEARTBEAT":
                     msg = {
                         "type":"HEARTBEAT",
@@ -331,7 +321,9 @@ class CubeConnection:
                         "yaw":data["yaw"]
                     }
                     self.logger.log(roll=msg["roll"], pitch=msg["pitch"], yaw=msg["yaw"])
+
                 case "AVAILABLE_MODES":
+                    ## print available modes
                     print(data)
                 
             if msg is not None and websocket is not None:
@@ -359,26 +351,33 @@ class CubeConnection:
         try:
             
             msg = json.loads(message)
-            
             print(msg) 
+
             if 'flap' in msg:
-                self._sendFlapRequest(int(msg['flap']))  # angle in degrees?
-            elif 'arm' in msg:
+                self.sendAngle(SERVO.FLAP, int(msg['flap']))  # angle in degrees?
+            if 'aileron' in msg:
+                self.sendAngle(SERVO.AILERON_LEFT, int(msg['aileron']))
+            if 'rudder' in msg:
+                self.sendAngle(SERVO.RUDDER, int(msg['rudder']))
+            
+
+            if 'arm' in msg:
                 print("arming", bool(msg['arm']))
                 self.sendArmRequest(bool(msg['arm']))
-            elif 'override' in msg:
+            if 'override' in msg:
                 # Example: { "override": [1500, 1500, 1500, 1500, 0, 0, 0, 0] }
                 print("overriding")
                 asyncio.ensure_future(self.send_rc_override(msg['override']))
-            elif 'RCWiFiMode' in msg:
+            if 'RCWiFiMode' in msg:
                 print("changing RC wifi mode")
                 nextControlMode = FlightMode(msg['RCWiFiMode'])
                 self.clear_rc_override()
-            elif 'mode' in msg:
+            if 'mode' in msg:
                 print("changing mode")
                 # Example: { "mode": 81 }
                 try:
                     self.set_mode(msg['mode'])
+                    ## print modes
                     self.connection.mav.command_long_send(
                     self.connection.target_system,
                     self.connection.target_component,
@@ -388,10 +387,10 @@ class CubeConnection:
                 except:
                     print("invalid flight mode for message %s", msg)
             
-            elif 'sensor' in msg:
+            if 'sensor' in msg:
                 if msg["sensor"] == "zero":
                     ## set sensor 0
-                    self.zero_sensor
+                    await self.sendZeroSensorRequest()
 
         except Exception as E:
             print("Error\n"+E)

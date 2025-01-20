@@ -20,12 +20,16 @@ local file
 
 local SCR_U1 = Parameter() -- Will control measurement toggle
 local SCR_U2 = Parameter() -- Will control logging toggle
+--Zero toggle
+local SCR_ZERO = Parameter() 
 SCR_U1:init('SCR_USER1')
 SCR_U2:init('SCR_USER2')
 local U1 = SCR_U1:get()
 local U2 = SCR_U2:get()
 local is_logging = false
 local is_measuring = false
+
+
 
 ----------------------------------------------
 ----------------------------------------------
@@ -139,6 +143,7 @@ function update()
     --gcs:send_text(6, "-----------------------------")   -- This way it looks nicer on the console, but will be removed for final software build
     verify()
     read_raw()
+    
     --gcs:send_text(6, "-----------------------------") -- commenting these lines out so it doesn't flood the UI
     return update, 1000
 end

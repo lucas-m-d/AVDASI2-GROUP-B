@@ -3,8 +3,10 @@ import time
 
 class Logger:
     def __init__(self):
-        self.logging_parameters = ["sys_time", "time_boot_ms", "connected", 
-                                   "mode", "pitch", "roll", "yaw", 
+        self.logging_parameters = ["sys_time", "time_boot_ms", "connected", "mode", 
+                                   "pitch", "pitchrate",
+                                   "roll", "rollrate"
+                                   "yaw", "yawrate" 
                                    "aileronL", "aileronR", "elevator", "rudder", "flapRequested",
                                    "flapSensorPosition", "armed", "command", "command_result"]
      
