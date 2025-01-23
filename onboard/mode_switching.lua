@@ -45,6 +45,8 @@ function bind_add_param(name, idx, default_value)
    return bind_param(PARAM_TABLE_PREFIX .. name)
 end
 
+local servoFunctions = {1,4,1,5,4,3,1,2} -- for each servo give it a function
+
 -- set up our table of parameters
 assert(param:add_table(PARAM_TABLE_KEY, PARAM_TABLE_PREFIX, 3), "AVDASI2: could not add param table") -- assign 3 rows to table, in case we want to add anything else later
 
@@ -97,10 +99,16 @@ function update() -- we run this whole function every UPDATE_INTERVAL_MS by call
 
   -- set servo function based on switch position 
   if rc_switch_pos == 0 then -- LOW, Manual RC Control
-    param:set("SERVO2_FUNCTION",19) -- Servo2 (usually elevator - check your setup) is set to '19' which tells it that it's an elevator
+    for servoNumber, servo_function in servoFunctions do
+      param:set(string.format("SERVO%d_FUNCTION", servoNumber), servo_function)
+    end
+    --param:set("SERVO2_FUNCTION",19) -- Servo2 (usually elevator - check your setup) is set to '19' which tells it that it's an elevator
     gcs:send_text(6, string.format("AVDASI2: Servo %d function set to %d", 1, 19))
   end
   if rc_switch_pos == 2 then -- HIGH, TELEM Servo Control
+    for servoNumber, #servoFunctions do
+      param:set(string.format("SERVO%d_FUNCTION", servoNumber), 0)
+    end
     param:set("SERVO2_FUNCTION",0) -- SERVO2_FUNCTION is set to '0' which tells it that it's disabled, so we can control it from GCS
     gcs:send_text(6, string.format("AVDASI2: Servo %d function set to %d", 1, 0))
   end

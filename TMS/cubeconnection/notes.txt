@@ -15,3 +15,9 @@ MAV_CMD_COMPONENT_ARM_DISARM (400)
 https://ardupilot.org/plane/docs/parameters.html#fltmode1
 https://ardupilot.org/dev/docs/mavlink-arming-and-disarming.html
 https://ardupilot.org/dev/docs/mavlink-get-set-flightmode.html
+
+
+
+
+Flap angles, min and max
+Min and max for everything

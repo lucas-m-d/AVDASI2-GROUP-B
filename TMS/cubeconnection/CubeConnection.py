@@ -166,11 +166,25 @@ class CubeConnection:
     
     def sendAngle(self, servoReq, angle): ##todo
         print("requested angle:", angle)
-        if servoReq not in SERVO:
-            print("invalid request")
 
-        servo_max_pos = 100
-        pwm_command = 2000 - (angle * 2000 / servo_max_pos)
+        pwm_command = 0
+
+        match servoReq:
+            case SERVO.FLAP:
+                servo_max_pos = 100
+                pwm_command = 2000 - (angle * 2000 / servo_max_pos)
+                # set to 
+            case SERVO.AILERON_LEFT:
+                pass
+            case SERVO.AILERON_RIGHT:
+                pass
+            case SERVO.ELEVATOR:
+                pass
+            case SERVO.RUDDER:
+                pass
+            case _:
+                print("invalid servo request")
+                return 
         
         try:
                 
@@ -355,11 +369,14 @@ class CubeConnection:
 
             if 'flap' in msg:
                 self.sendAngle(SERVO.FLAP, int(msg['flap']))  # angle in degrees?
-            if 'aileron' in msg:
-                self.sendAngle(SERVO.AILERON_LEFT, int(msg['aileron']))
+            if 'aileronL' in msg:
+                self.sendAngle(SERVO.AILERON_LEFT, int(msg['aileronL']))
+            if 'aileronR' in msg:
+                self.sendAngle(SERVO.AILERON_RIGHT, int(msg["rudder"]))
             if 'rudder' in msg:
                 self.sendAngle(SERVO.RUDDER, int(msg['rudder']))
-            
+            if 'elevator' in msg:
+                self.sendAngle(SERVO.ELEVATOR, int(msg["elevator"]))
 
             if 'arm' in msg:
                 print("arming", bool(msg['arm']))

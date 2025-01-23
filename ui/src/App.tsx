@@ -10,14 +10,14 @@ import { RCModeControls /*, RCWifiSwitch*/ } from "./ui/RC/RCModeButtons";
 import RCSendControl from "./ui/RC/RCSendControl";
 import {LivePlotMemoized} from "./ui/dataHistory/LivePlot"; 
 import FlightControlIndicators from "./ui/flightControlSurfaces/indicator/FlightControlIndicators";
+import ServoControls from "./ui/flightControlSurfaces/servos/ServoControls";
 
 export default function App() {
     const [data, setData] = useState(latestData);
     const [socketState, setSocketState] = useState(false); // Default to false, to handle unconnected state
     const dataRefreshRate = 1000 / 20; // Update data every 50ms
     const socketRefreshRate = 1000 / 500; // Check socket state every 2ms
-    // Ref for data rate
-    //const dr = useRef(getDataRate());
+
 
     useEffect(() => {
         // Establish WebSocket connection
@@ -94,12 +94,14 @@ export default function App() {
                 <FlapControl min={0} max={360} requested={data.flapRequestStatus} posArray={[data.flapSensorPosition, data.flapSensorPosition]} />
             </Grid>
 
-            
+            <Grid size={2} component="div">
+                <ServoControls />
+            </Grid>
 
             {/* RC Send Control */}
-            <Grid size={2} component="div">
+            {/* <Grid size={2} component="div">
                 <RCSendControl />
-            </Grid>
+            </Grid> */}
             
             <Grid size={2}>
                 Errors:
@@ -121,9 +123,9 @@ export default function App() {
             
 
             {/* LivePlot Component */}
-            <Grid size={12}>
+            {/* <Grid size={12}>
                 <LivePlotMemoized />
-            </Grid>
+            </Grid> */}
             
         </Grid>
             
