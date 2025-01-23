@@ -11,7 +11,7 @@
 -- Here I set up the I2C variables: ADDR is the I2C serial address of the sensor itself, REG_ADDR is the registry address of the angle registry 
 
 local ADDR = 0x0C   -- 0x0D, 0x0E or 0x0F depending on hardware configuration
-local REG_ADDR = 0x0C
+local REG_ADDR = 0x20
 local bus = 0   -- = 0 for I2C2 port on the carrier board
 
 
@@ -26,8 +26,10 @@ local file
 
 local SCR_U1 = Parameter() -- Will control measurement toggle
 local SCR_U2 = Parameter() -- Will control logging toggle
+local Zero = Parameter() -- Will control zeroing
 SCR_U1:init('SCR_USER1')
 SCR_U2:init('SCR_USER2')
+Zero:init('SCR_USER3')
 -- The lines above make the updating of the parameters easier. Generally you could just look up the value of the parameter with a single line of code,
 -- but that way the cube will search through the whole parameter list fully. This way, by initialising two Parameter type variables, the script saves the 
 -- location of the parameter and makes subsequnet lookups really efficient. SCR_U1 and SCR_U2 do not contain the value of the parameter, but the parameter itself.
@@ -39,12 +41,15 @@ local U2 = SCR_U2:get()
 local is_logging = false    -- These are local variables that help determine if the logging or measuring is toggled on/off
 local is_measuring = false
 
+Zero:set_default(0.0)
+Zero:set_and_save(0.0)
 ----------------------------------------------
 ----------------------------------------------
 
 local sensor = i2c:get_device(bus, ADDR)    -- Setting up the I2C bus
 sensor:set_address(ADDR)    -- Technically you don't need to do this, but it helps make sure the sensor address is the right one
 
+local zero_offset = 0
 ----------------------------------------------
 file = io.open(file_path, "w")  -- Opening the file in write mode and closing it immediately just to erase previous measurements. Might remove this, not sure yet
 file:close()
@@ -60,8 +65,9 @@ end
 function verify()   -- This function verifies if measuring/logging is turned on/off. is_measuring and is_logging store the current mode of the cube, to help determine if the cube parameters were changed by the GCS (e.g. if is_measuring is 0 and U1 is 1 then measuring has just been turned on)
     U1 = SCR_U1:get()
     U2 = SCR_U2:get()
-    gcs:send_text(1, "is_measuring: " .. tostring(is_measuring))    -- The gcs:send_text() lines in this function serve debug purposes, probably will be removed for final build of the code
-    gcs:send_text(1, "is_logging: " .. tostring(is_logging))
+    --gcs:send_text(1, "is_measuring: " .. tostring(is_measuring))    -- The gcs:send_text() lines in this function serve debug purposes, probably will be removed for final build of the code
+    --gcs:send_text(1, "is_logging: " .. tostring(is_logging))
+    --gcs:send_text(1, "SCR_ZERO:" .. tostring(Zero:get()))
     if U1 == 1.0 then
         if is_measuring == false then
             gcs:send_text(0, "Beginning sensor measurement")
@@ -84,6 +90,10 @@ function verify()   -- This function verifies if measuring/logging is turned on/
             is_logging = false
         end
     end
+    if Zero:get() == 1.0 then
+        Zero:set_and_save(0.0)
+        zero_sensor()
+    end
 end
 
 function get_clock()    -- Just a function to get the clock
@@ -95,7 +105,7 @@ end
 
 function send_data(data)
     gcs:send_named_float("Sensor", data)    -- This line sends a NAMED_VALUE_FLOAT mavlink message to the GCS. The message has two parts, a string and a float
-    gcs:send_text(6, "Sending angle data to gcs...")    -- Again, debug
+    --gcs:send_text(6, "Sending angle data to gcs...")    -- Again, debug
 end
 
 function read_angle()   -- This function reads the angle registry of the sensor, parses the bits and reads an angle from it
@@ -107,10 +117,12 @@ function read_angle()   -- This function reads the angle registry of the sensor,
             local angle = (high * 256) + low    -- To recreate the true value of the registry, we must shift the high bits left by 8 places (since they represent larger unit values). Since there is no specific bitwise shift operator in LUA we simply multiply by 2^8 or 256.
             angle = angle & 0x0FFF  -- The first four bits do not contain data about the angle, but rather are used to find the registry, we don't need them. This line is a bitwise AND operation. Result will be 1 if both angle and 0x0FFF(= 0000111111111111) has 1 at the given position. What this does is sets the first four bits to zero, and keeps the rest as they were (since 0x0FFF has 1 at every other place, the final value depends on the bit in angle)
             angle = (angle / 4096) * 360 -- Conversion from bit value to degree, 4096 depends on the system (12bit in our case). You get this by 2^(bit size of the system)
+            angle = angle - zero_offset
             gcs:send_text(6,"Flap angle: " .. tostring(angle) .. " deg")    -- This way we can see the angle printed in the console
+            gcs:send_text(6,"Zero offset: " .. tostring(zero_offset))
             log(angle)  -- Sends angle data to get logged
             send_data(angle)    -- Sends angle data to be transmitted to the GCS
-            return
+            return angle
         else
             gcs:send_text(6, "Failed read from sensor") -- Mostly debug functionality
         end
@@ -145,7 +157,21 @@ function log(angle)
         return
     end
 end
-    
+
+function zero_sensor()
+    local current = sensor:read_registers(REG_ADDR, 2)
+    if current then
+        local high = current[1]
+        local low = current[2]
+        current = (high * 256) + low
+        current = current & 0x0FFF
+        current = (current / 4096) * 360
+        gcs:send_text(6, "Set zero offset to: " .. tostring(current))
+        zero_offset = current
+    else
+        gcs:send_text(6, "Failed current angle read")
+    end
+end
 
 
 function update()   -- This is the function that calls everything else, and this is the function that gets called repeatedly by the cube
