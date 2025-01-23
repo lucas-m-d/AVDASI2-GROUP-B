@@ -316,6 +316,7 @@ class CubeConnection:
                             "time_boot_ms":data['time_boot_ms'],
                             "flapSensorPosition":data["value"]
                         }
+                        print(msg["flapSensorPosition"])
                     self.logger.log(time_boot_ms=data["time_boot_ms"], flapSensorPosition=data["value"])
 
                 case "SERVO_OUTPUT_RAW": ### change here to ACTUATOR_OUTPUT_STATUS?
