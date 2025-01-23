@@ -68,7 +68,7 @@ gcs:send_text(MAV_SEVERITY.INFO, "AVDASI2: started") -- just log an info message
 -- the main update function
 function update() -- we run this whole function every UPDATE_INTERVAL_MS by calling itself again on each 'return'
 
-  local servoFunctions = {1,4,19,5,0,0,0,2} -- for each servo give it a function
+  local servoFunctions = {1,4,19,5,19,19,19,2} -- for each servo give it a function
   for servoNumber = 0, #servoFunctions do
     gcs:send_text(6, string.format("SERVO%d_FUNCTION", servoNumber))
   end
