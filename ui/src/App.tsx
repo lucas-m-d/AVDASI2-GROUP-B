@@ -47,8 +47,7 @@ export default function App() {
     // on first load, clear data arrays (save memory)
     useEffect(() => {
         clearData()
-    })
-
+    }) // a;ljsdbfklahsgdfk
     const testing = false;
 
     return (
@@ -81,9 +80,9 @@ export default function App() {
 
             {/* RC Mode Controls, indicators */}
             <Grid size={1.75} component="div">
-                <RCModeControls mode={latestData.mode} />
+                <RCModeControls mode={data.mode} />
                 <div style={{ marginTop: "20px" }}>
-                <FlightControlIndicators ailL={latestData.servoAileronL} ailR={latestData.servoAileronR} elev={latestData.servoElevator} rud={latestData.servoRudder}/>
+                <FlightControlIndicators ailL={data.servoAileronL} ailR={data.servoAileronR} elev={data.servoElevator} rud={latestData.servoRudder}/>
                 </div>
             </Grid>
 
@@ -105,7 +104,7 @@ export default function App() {
             
             <Grid size={2}>
                 Errors:
-                {latestData.errorMessages && latestData.errorMessages.map((msg, i) => {
+                {data.errorMessages && data.errorMessages.map((msg, i) => {
                     return(
                         <div key={i}>
                             {msg}
