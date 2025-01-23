@@ -47,7 +47,7 @@ export default function App() {
     // on first load, clear data arrays (save memory)
     useEffect(() => {
         clearData()
-    }) // a;ljsdbfklahsgdfk
+    }, []) // a;ljsdbfklahsgdfk
     const testing = false;
 
     return (
@@ -122,9 +122,9 @@ export default function App() {
             
 
             {/* LivePlot Component */}
-            {/* <Grid size={12}>
+            <Grid size={12}>
                 <LivePlotMemoized />
-            </Grid> */}
+            </Grid>
             
         </Grid>
             

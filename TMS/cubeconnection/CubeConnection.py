@@ -16,8 +16,8 @@ class RCWifiControl(Enum):
 class SERVO(Enum):
     '''Configure the ports connected to the cube'''
     FLAP = 2
-    ELEVATOR = 1
-    AILERON_LEFT = 3
+    ELEVATOR = 3
+    AILERON_LEFT = 1
     AILERON_RIGHT = 4
     RUDDER = 5
 
@@ -165,16 +165,16 @@ class CubeConnection:
             int(arm), 21196, 0, 0, 0, 0, 0)
     
     def sendAngle(self, servoReq, angle): ##todo
-        print("requested angle:", angle)
+        print(f"{servoReq}, requested angle:", angle)
 
         pwm_command = 0
 
         match servoReq:
             case SERVO.FLAP:
-                servo_max_pos = 100
-                pwm_command = 2000 - (angle * 2000 / servo_max_pos)
-                # set to 
+                print("flap line 174")
+                pass
             case SERVO.AILERON_LEFT:
+                print("AilL aoshdf")
                 pass
             case SERVO.AILERON_RIGHT:
                 pass
@@ -185,19 +185,22 @@ class CubeConnection:
             case _:
                 print("invalid servo request")
                 return 
+        servo_max_pos = 100
+        pwm_command = 2000 - 1000*(angle/45)
+        
         
         try:
-                
+            print("pwm command: ", int(pwm_command))       
             self.connection.mav.command_long_send(
                 self.connection.target_system,
                 self.connection.target_component,
                     mavutil.mavlink.MAV_CMD_DO_SET_SERVO,
-                    1,
-                    servoReq,
-                    (pwm_command),
+                    0,
+                    servoReq.value,
+                    (int(pwm_command)),
                     0,0,0,0,0
             )            
-            print("pwm command")   
+            
                     
         except Exception as e:
             print("error sending flap request message")
@@ -248,13 +251,13 @@ class CubeConnection:
             mavutil.mavlink.MAV_PARAM_TYPE_REAL32
         )
 
-        # self.connection.mav.command_long_send(
-        #     self.connection.target_system,
-        #     self.connection.target_component,
-        #     mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
-        #     0,1,22196,0,0,0,0,0
-        # )
-        ## force arming?
+        self.connection.mav.command_long_send(
+            self.connection.target_system,
+            self.connection.target_component,
+            mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+            0,1,22196,0,0,0,0,0
+        )
+        # force arming?
         
         ## check to see what modes are available
 
@@ -341,6 +344,8 @@ class CubeConnection:
                 case "AVAILABLE_MODES":
                     ## print available modes
                     print(data)
+
+                case "BAD_DATA":print(data)
                 
             if msg is not None and websocket is not None:
                 await websocket.send(json.dumps(msg))   
