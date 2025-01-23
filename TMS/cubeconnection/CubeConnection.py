@@ -261,8 +261,8 @@ class CubeConnection:
                         "connected":True,
                         "armed":self.connection.motors_armed()
                     }
-                    print("armed: ", self.connection.motors_armed())
-                    print("state: ", data["system_status"]) # https://mavlink.io/en/messages/common.html#MAV_STATE
+                    #print("armed: ", self.connection.motors_armed())
+                    #print("state: ", data["system_status"]) # https://mavlink.io/en/messages/common.html#MAV_STATE
                     self.logger.log(connected=True, armed=self.connection.motors_armed(), mode=data["base_mode"])
                     
 
@@ -301,17 +301,19 @@ class CubeConnection:
                         rawToAngle = lambda a : (a-1100) * 90/900 # check.  Might be better to use scaled outputs instead
                         msg = {
                             "type":"SERVO_OUTPUT_RAW",
-                            "flapRequested":rawToAngle(data[f'servo{SERVO.FLAP}_raw']),
-                            "aileronL":rawToAngle(data[f"servo{SERVO.AILERON_LEFT}_raw"]),
-                            "aileronR":rawToAngle(data[f"servo{SERVO.AILERON_RIGHT}_raw"]),
-                            "rudder":rawToAngle(data[f"servo{SERVO.RUDDER}_raw"]),
-                            "elevator":rawToAngle(data[f"servo{SERVO.ELEVATOR}_raw"]) # change servo outputs later when final assembly completed
+                            "flapRequested":rawToAngle(data[f"servo{SERVO.FLAP.value}_raw"]),
+                            "aileronL":rawToAngle(data[f"servo{SERVO.AILERON_LEFT.value}_raw"]),
+                            "aileronR":rawToAngle(data[f"servo{SERVO.AILERON_RIGHT.value}_raw"]),
+                            "rudder":rawToAngle(data[f"servo{SERVO.RUDDER.value}_raw"]),
+                            "elevator":rawToAngle(data[f"servo{SERVO.ELEVATOR.value}_raw"]) # change servo outputs later when final assembly completed
                         }
+                        #self.logger.log(aileronL=msg["aileronL"], flapRequested=msg["flapRequested"], aileronR=msg["aileronR"], rudder=msg["rudder"], elevator=msg["elevator"])
 
-                    except:
-                        print(data)
-                    self.logger.log(aileronL=msg["aileronL"], flapRequested=msg["flapRequested"], aileronR=msg["aileronR"], rudder=msg["rudder"], elevator=msg["elevator"])
-
+                    except Exception as E:
+                        #print(data)
+                        print(E)
+                        pass
+                    
                 case "ATTITUDE":
                     msg = {
                         "type":"ATTITUDE",
@@ -320,7 +322,7 @@ class CubeConnection:
                         "pitch":data["pitch"],
                         "yaw":data["yaw"]
                     }
-                    self.logger.log(roll=msg["roll"], pitch=msg["pitch"], yaw=msg["yaw"])
+                    self.logger.log(roll=msg["roll"], pitch=msg["pitch"])
 
                 case "AVAILABLE_MODES":
                     ## print available modes
