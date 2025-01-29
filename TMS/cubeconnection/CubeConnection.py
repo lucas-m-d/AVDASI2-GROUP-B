@@ -4,6 +4,7 @@ import asyncio
 import json
 from enum import Enum
 from .Logger import Logger
+from .FlightModes import FlightMode
 
 class FlightMode(Enum):
     MANUAL = 0
@@ -20,6 +21,7 @@ class SERVO(Enum):
     AILERON_LEFT = 3
     AILERON_RIGHT = 4
     RUDDER = 5
+
 
 class CubeConnection:
 
@@ -117,7 +119,7 @@ class CubeConnection:
                 self.connection.target_component,
                 mavutil.mavlink.MAV_CMD_DO_SET_MODE, ##### here -> change mode
                 0, 
-                mode, 0, 0, 0, 0, 0, 0
+                1, mode, 0, 0, 0, 0, 0
             )
             
             self.connection.mav.set_mode_send(self.connection.target_system, 0, mode)
@@ -397,12 +399,13 @@ class CubeConnection:
                 try:
                     self.set_mode(msg['mode'])
                     ## print modes
-                    self.connection.mav.command_long_send(
-                    self.connection.target_system,
-                    self.connection.target_component,
-                    mavutil.mavlink.MAV_CMD_REQUEST_MESSAGE,
-                    0,
-                    435,0, 0, 0, 0, 0, 0)
+                    # self.connection.mav.command_long_send(
+                    # self.connection.target_system,
+                    # self.connection.target_component,
+                    # mavutil.mavlink.MAV_CMD_REQUEST_MESSAGE,
+                    # 0,
+                    # 435,0, 0, 0, 0, 0, 0
+                    # )
                 except:
                     print("invalid flight mode for message %s", msg)
             
