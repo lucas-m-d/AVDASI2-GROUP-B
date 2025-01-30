@@ -70,7 +70,7 @@ function update() -- we run this whole function every UPDATE_INTERVAL_MS by call
 
   local servoFunctions = {1,4,19,5,19,19,19,2} -- for each servo give it a function
   for servoNumber = 0, #servoFunctions do
-    gcs:send_text(6, string.format("SERVO%d_FUNCTION", servoNumber))
+    --gcs:send_text(6, string.format("SERVO%d_FUNCTION", servoNumber))
   end
 
   -- get RC switch position
@@ -112,7 +112,7 @@ function update() -- we run this whole function every UPDATE_INTERVAL_MS by call
   if rc_switch_pos == 2 then -- HIGH, TELEM Servo Control
     
     for servoNumber=1, #servoFunctions do
-      gcs:send_text(6, string.format("SERVO%d_FUNCTION", servoNumber))
+      --gcs:send_text(6, string.format("SERVO%d_FUNCTION", servoNumber))
       param:set(string.format("SERVO%d_FUNCTION", servoNumber), 0)
     end
     --param:set("SERVO2_FUNCTION",0) -- SERVO2_FUNCTION is set to '0' which tells it that it's disabled, so we can control it from GCS

@@ -15,7 +15,7 @@ export default function ArmButton({armStatus} : ArmButtonProps) {
 
     return (
         <div>
-            <Button variant="contained" onClick={handleArm} disabled={(armStatus === undefined)}>{armed ? "Disarm" : "Arm"}</Button>
+            <Button variant="contained" onClick={handleArm} disabled={(armStatus === undefined)}> {armed ? "Arm" : "Disarm"}</Button>
         </div>
     )
 }

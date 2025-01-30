@@ -341,6 +341,7 @@ class CubeConnection:
 
                     except Exception as E:
                         #print(data)
+                        print("error here")
                         print(E)
                         pass
                     
@@ -421,6 +422,8 @@ class CubeConnection:
                     mavutil.mavlink.MAV_CMD_REQUEST_MESSAGE,
                     0,
                     435,0, 0, 0, 0, 0, 0)
+
+                    self.set_mode(FlightModes.)
                 except:
                     print("invalid flight mode for message %s", msg)
             
