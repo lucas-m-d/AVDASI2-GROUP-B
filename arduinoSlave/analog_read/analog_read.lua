@@ -73,6 +73,7 @@ function update()
         -- now read the register data and collect its value as an signed integer
         local data = read_register_data()
         gcs:send_named_float('A' .. idx, unpack_int(data))
+        gcs:send_text(MAV_SEVERITY_INFO,  "A" .. idx .. ": " .. unpack_int(data))
     end
     return update, RUN_INTERVAL_MS
 end

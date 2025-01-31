@@ -80,7 +80,28 @@ void setup() {
 }
 
 void loop() {
-    // print some debug info
+    // Print analog readings and calculated voltage values
+    Serial.println(F("Analog Pin Readings:"));
+    for (uint8_t i = 0; i < num_pins; i++) {
+        int raw_value = analogRead(analog_pins[i]);
+
+        // Convert to voltage (adjust for ESP32 if using a 12-bit ADC)
+#ifdef ESP32
+        float voltage = raw_value * (3.3 / 4095.0);  // ESP32 has a 12-bit ADC (0-4095) and 3.3V reference
+#else
+        float voltage = raw_value * (5.0 / 1023.0);  // Most Arduino boards use a 10-bit ADC (0-1023) and 5V reference
+#endif
+
+        Serial.print(F("Pin A"));
+        Serial.print(i);
+        Serial.print(F(": Raw Value = "));
+        Serial.print(raw_value);
+        Serial.print(F(", Voltage = "));
+        Serial.print(voltage, 3);  // Print voltage with 3 decimal places
+        Serial.println(F(" V"));
+    }
+
+    // Check and print I2C error count
     uint32_t e = Slave.numErrors();
     if (num_errors != e) {
         num_errors = e;
@@ -90,9 +111,11 @@ void loop() {
     }
 
 #ifdef LED_BUILTIN
-    // single line LED blink
+    // Single-line LED blink
     digitalWrite(LED_BUILTIN, digitalRead(LED_BUILTIN) ^ 1);
 #endif
 
+    Serial.println();  // Add a blank line for readability
     delay(1000);
 }
+
