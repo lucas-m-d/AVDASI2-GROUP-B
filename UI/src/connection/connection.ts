@@ -45,7 +45,6 @@ const connectWebSocket = (url: string) => {
                 break;
     
             case "HEARTBEAT":
-                console.log(newData);
                 latestData.mode = newData.mode;
                 latestData.armed = Boolean(newData.armed);
                 break;
@@ -84,10 +83,6 @@ const connectWebSocket = (url: string) => {
     };
 };
 
-
-export const getDataRate = () => {
-    return [n / (Date.now() - startTime), latestData?.time_boot_ms!*1000] 
-}
 
 const closeWebSocket = () => {
     if (socket) {

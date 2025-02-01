@@ -4,7 +4,10 @@ import asyncio
 import json
 from enum import Enum
 from .Logger import Logger
-from .FlightModes import FlightMode
+
+from .ArduPilotModes import ArduPilotMode
+import traceback
+
 
 class FlightMode(Enum):
     MANUAL = 0
@@ -16,11 +19,15 @@ class RCWifiControl(Enum):
 
 class SERVO(Enum):
     '''Configure the ports connected to the cube'''
-    FLAP = 2
-    ELEVATOR = 1
-    AILERON_LEFT = 3
-    AILERON_RIGHT = 4
-    RUDDER = 5
+    # servo outputs
+    AILERON_PORT = 1
+    AILERON_SB = 2
+    FLAP_PORT = 3
+    FLAP_SB = 4
+    ELEV = 5
+    RUDDER = 6
+    ## placeholder flap 
+    FLAP = 13
 
 
 class CubeConnection:
@@ -167,43 +174,52 @@ class CubeConnection:
             int(arm), 21196, 0, 0, 0, 0, 0)
     
     def sendAngle(self, servoReq, angle): ##todo
-        print("requested angle:", angle)
-
+        print(f"{servoReq}, requested angle:", angle)
+        servosToMove = []
         pwm_command = 0
-
-        match servoReq:
-            case SERVO.FLAP:
-                servo_max_pos = 100
-                pwm_command = 2000 - (angle * 2000 / servo_max_pos)
-                # set to 
-            case SERVO.AILERON_LEFT:
-                pass
-            case SERVO.AILERON_RIGHT:
-                pass
-            case SERVO.ELEVATOR:
-                pass
-            case SERVO.RUDDER:
-                pass
-            case _:
-                print("invalid servo request")
-                return 
-        
         try:
-                
-            self.connection.mav.command_long_send(
-                self.connection.target_system,
-                self.connection.target_component,
-                    mavutil.mavlink.MAV_CMD_DO_SET_SERVO,
-                    1,
-                    servoReq,
-                    (pwm_command),
-                    0,0,0,0,0
-            )            
-            print("pwm command")   
+            match servoReq:
+                case SERVO.FLAP:
+                    print("flap request")
+                    servosToMove = [SERVO.FLAP_PORT.value, SERVO.FLAP_SB.value]
+                    pwm_command= 1500 + 50 * (angle/30)
                     
+                case SERVO.AILERON_PORT:
+                    pwm_command= 1500 + 50 * (angle/30)
+                    servosToMove = [SERVO.AILERON_PORT.value]
+                    pass
+                case SERVO.AILERON_SB:
+                    pwm_command= 1500 + 50 * (angle/30)
+                    servosToMove = [SERVO.AILERON_PORT.value]
+                case SERVO.ELEV:
+                    servosToMove = [SERVO.ELEV]
+                    pwm_command= 1500 + 50 * (angle/30)
+                case SERVO.RUDDER:
+                    pwm_command= 1500 + 50 * (angle/30)
+                    servosToMove = [SERVO.AILERON_PORT.value]
+                    
+                case _:
+                    print("invalid servo request")
+                    return 
+                
+            for servo in servosToMove:
+                self.connection.mav.command_long_send(
+                    self.connection.target_system,
+                    self.connection.target_component,
+                    mavutil.mavlink.MAV_CMD_DO_SET_SERVO,
+                    0,
+                    servo,
+                    pwm_command,
+                    0,0,0,0,0
+                )
+                
         except Exception as e:
             print("error sending flap request message")
             print(e)
+                   
+            
+                    
+        
             
 
     def update(self, websocket):
@@ -250,13 +266,13 @@ class CubeConnection:
             mavutil.mavlink.MAV_PARAM_TYPE_REAL32
         )
 
-        # self.connection.mav.command_long_send(
-        #     self.connection.target_system,
-        #     self.connection.target_component,
-        #     mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
-        #     0,1,22196,0,0,0,0,0
-        # )
-        ## force arming?
+        self.connection.mav.command_long_send(
+            self.connection.target_system,
+            self.connection.target_component,
+            mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+            0,1,22196,0,0,0,0,0
+        )
+        # force arming?
         
         ## check to see what modes are available
 
@@ -277,6 +293,8 @@ class CubeConnection:
                         "connected":True,
                         "armed":self.connection.motors_armed()
                     }
+                    if not self.connection.motors_armed():
+                        print("motors not armed")
                     #print("armed: ", self.connection.motors_armed())
                     #print("state: ", data["system_status"]) # https://mavlink.io/en/messages/common.html#MAV_STATE
                     self.logger.log(connected=True, armed=self.connection.motors_armed(), mode=data["base_mode"])
@@ -288,6 +306,8 @@ class CubeConnection:
                         print("Message interval")
                     elif data["command"] == mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM:
                         print("ARM DISARM REQUEST")
+                    elif data["command"] == mavutil.mavlink.MAV_CMD_DO_SET_MODE:
+                        print("setting mode command")
                     print(data)    
                     
                     if data["result"] != 0:
@@ -312,14 +332,14 @@ class CubeConnection:
                     
                     self.logger.log(time_boot_ms=data["time_boot_ms"], flapSensorPosition=data["value"])
 
-                case "SERVO_OUTPUT_RAW": ### change here to ACTUATOR_OUTPUT_STATUS?
+                case "SERVO_OUTPUT_STATUS": ### change here to ACTUATOR_OUTPUT_STATUS?
                     try:
                         rawToAngle = lambda a : (a-1100) * 90/900 # check.  Might be better to use scaled outputs instead
                         msg = {
                             "type":"SERVO_OUTPUT_RAW",
                             "flapRequested":rawToAngle(data[f"servo{SERVO.FLAP.value}_raw"]),
-                            "aileronL":rawToAngle(data[f"servo{SERVO.AILERON_LEFT.value}_raw"]),
-                            "aileronR":rawToAngle(data[f"servo{SERVO.AILERON_RIGHT.value}_raw"]),
+                            "aileronL":rawToAngle(data[f"servo{SERVO.AILERON_PORT.value}_raw"]),
+                            "aileronR":rawToAngle(data[f"servo{SERVO.AILERON_SB.value}_raw"]),
                             "rudder":rawToAngle(data[f"servo{SERVO.RUDDER.value}_raw"]),
                             "elevator":rawToAngle(data[f"servo{SERVO.ELEVATOR.value}_raw"]) # change servo outputs later when final assembly completed
                         }
@@ -327,6 +347,7 @@ class CubeConnection:
 
                     except Exception as E:
                         #print(data)
+                        print("error here")
                         print(E)
                         pass
                     
@@ -343,6 +364,8 @@ class CubeConnection:
                 case "AVAILABLE_MODES":
                     ## print available modes
                     print(data)
+
+                case "BAD_DATA":print(data)
                 
             if msg is not None and websocket is not None:
                 await websocket.send(json.dumps(msg))   
@@ -370,20 +393,21 @@ class CubeConnection:
             
             msg = json.loads(message)
             print(msg) 
-
+            
             if 'flap' in msg:
                 self.sendAngle(SERVO.FLAP, int(msg['flap']))  # angle in degrees?
-            if 'aileronL' in msg:
-                self.sendAngle(SERVO.AILERON_LEFT, int(msg['aileronL']))
-            if 'aileronR' in msg:
-                self.sendAngle(SERVO.AILERON_RIGHT, int(msg["rudder"]))
-            if 'rudder' in msg:
+            elif 'aileronL' in msg:
+                self.sendAngle(SERVO.AILERON_PORT, int(msg['aileronL']))
+            elif 'aileronR' in msg:
+                self.sendAngle(SERVO.AILERON_SB, int(msg["aileronR"]))
+            elif 'rudder' in msg:
                 self.sendAngle(SERVO.RUDDER, int(msg['rudder']))
-            if 'elevator' in msg:
-                self.sendAngle(SERVO.ELEVATOR, int(msg["elevator"]))
+            elif 'elevator' in msg:
+                self.sendAngle(SERVO.ELEV, int(msg["elevator"]))
 
             if 'arm' in msg:
                 print("arming", bool(msg['arm']))
+
                 self.sendArmRequest(bool(msg['arm']))
             if 'override' in msg:
                 # Example: { "override": [1500, 1500, 1500, 1500, 0, 0, 0, 0] }
@@ -397,16 +421,26 @@ class CubeConnection:
                 print("changing mode")
                 # Example: { "mode": 81 }
                 try:
-                    self.set_mode(msg['mode'])
+                    #self.set_mode(msg['mode'])
                     ## print modes
                     # self.connection.mav.command_long_send(
                     # self.connection.target_system,
                     # self.connection.target_component,
                     # mavutil.mavlink.MAV_CMD_REQUEST_MESSAGE,
                     # 0,
-                    # 435,0, 0, 0, 0, 0, 0
-                    # )
-                except:
+
+                    # 435,0, 0, 0, 0, 0, 0)
+                    print("here mode changing")
+                    self.connection.mav.command_long_send(
+                        self.connection.target_system,
+                        self.connection.target_component,
+                        mavutil.mavlink.MAV_CMD_DO_SET_MODE,
+                        0,
+                        1, msg['mode'], 0,0,0,0,0
+                    )
+                    
+                except Exception as E:
+                    print(E)
                     print("invalid flight mode for message %s", msg)
             
             if 'sensor' in msg:
@@ -415,4 +449,5 @@ class CubeConnection:
                     await self.sendZeroSensorRequest()
 
         except Exception as E:
-            print("Error\n"+E)
+            print("Error\n", E)
+            print(traceback.format_exc())

@@ -30,6 +30,7 @@ export const LivePlotMemoized = memo(function LivePlot() {
 
     const [data, setData] = useState<LivePlotDataPoint[]>([])
     const loadTime = useRef(Date.now())
+    const maxLength = 60*5
 
     useEffect(() => {
         const intervalId = setInterval(() => {
@@ -38,6 +39,9 @@ export const LivePlotMemoized = memo(function LivePlot() {
             // Ensure flapSensorPosition has a default value of 0 if it's undefined or null
             if (latestData.time_boot_ms !== undefined) {
                 setData((oldData) => {
+                    if (oldData.length > maxLength){
+                        oldData.shift();
+                    }
                     var newData: LivePlotDataPoint = {
                         "time":Date.now()-loadTime.current,
                         "time_boot_ms":latestData.time_boot_ms,
