@@ -8,7 +8,6 @@ export enum RCWifiControlTypes {
 }
 
 
-
 interface OverrideRCRequestType {
     type: string,
     override: number[]
