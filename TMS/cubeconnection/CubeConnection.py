@@ -4,6 +4,7 @@ import asyncio
 import json
 from enum import Enum
 from .Logger import Logger
+from .ArduPilotModes import ArduPilotMode
 import traceback
 
 class FlightMode(Enum):
@@ -21,12 +22,10 @@ class SERVO(Enum):
     AILERON_SB = 2
     FLAP_PORT = 3
     FLAP_SB = 4
-    ELEV_PORT = 5
-    ELEV_SB = 6
-    RUDDER = 7
-    ## placeholder flap + elevator
+    ELEV = 5
+    RUDDER = 6
+    ## placeholder flap 
     FLAP = 13
-    ELEVATOR = 15
 
 class CubeConnection:
 
@@ -189,8 +188,8 @@ class CubeConnection:
                 case SERVO.AILERON_SB:
                     pwm_command= 1500 + 50 * (angle/30)
                     servosToMove = [SERVO.AILERON_PORT.value]
-                case SERVO.ELEVATOR:
-                    servosToMove = [SERVO.ELEV_PORT.value, SERVO.ELEV_SB.value]
+                case SERVO.ELEV:
+                    servosToMove = [SERVO.ELEV]
                     pwm_command= 1500 + 50 * (angle/30)
                 case SERVO.RUDDER:
                     pwm_command= 1500 + 50 * (angle/30)
@@ -291,6 +290,8 @@ class CubeConnection:
                         "connected":True,
                         "armed":self.connection.motors_armed()
                     }
+                    if not self.connection.motors_armed():
+                        print("motors not armed")
                     #print("armed: ", self.connection.motors_armed())
                     #print("state: ", data["system_status"]) # https://mavlink.io/en/messages/common.html#MAV_STATE
                     self.logger.log(connected=True, armed=self.connection.motors_armed(), mode=data["base_mode"])
@@ -302,6 +303,8 @@ class CubeConnection:
                         print("Message interval")
                     elif data["command"] == mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM:
                         print("ARM DISARM REQUEST")
+                    elif data["command"] == mavutil.mavlink.MAV_CMD_DO_SET_MODE:
+                        print("setting mode command")
                     print(data)    
                     
                     if data["result"] != 0:
@@ -326,7 +329,7 @@ class CubeConnection:
                     
                     self.logger.log(time_boot_ms=data["time_boot_ms"], flapSensorPosition=data["value"])
 
-                case "SERVO_OUTPUT_RAW": ### change here to ACTUATOR_OUTPUT_STATUS?
+                case "SERVO_OUTPUT_STATUS": ### change here to ACTUATOR_OUTPUT_STATUS?
                     try:
                         rawToAngle = lambda a : (a-1100) * 90/900 # check.  Might be better to use scaled outputs instead
                         msg = {
@@ -393,14 +396,15 @@ class CubeConnection:
             elif 'aileronL' in msg:
                 self.sendAngle(SERVO.AILERON_PORT, int(msg['aileronL']))
             elif 'aileronR' in msg:
-                self.sendAngle(SERVO.AILERON_SB, int(msg["rudder"]))
+                self.sendAngle(SERVO.AILERON_SB, int(msg["aileronR"]))
             elif 'rudder' in msg:
                 self.sendAngle(SERVO.RUDDER, int(msg['rudder']))
             elif 'elevator' in msg:
-                self.sendAngle(SERVO.ELEVATOR, int(msg["elevator"]))
+                self.sendAngle(SERVO.ELEV, int(msg["elevator"]))
 
             if 'arm' in msg:
                 print("arming", bool(msg['arm']))
+
                 self.sendArmRequest(bool(msg['arm']))
             if 'override' in msg:
                 # Example: { "override": [1500, 1500, 1500, 1500, 0, 0, 0, 0] }
@@ -414,17 +418,25 @@ class CubeConnection:
                 print("changing mode")
                 # Example: { "mode": 81 }
                 try:
-                    self.set_mode(msg['mode'])
+                    #self.set_mode(msg['mode'])
                     ## print modes
+                    # self.connection.mav.command_long_send(
+                    # self.connection.target_system,
+                    # self.connection.target_component,
+                    # mavutil.mavlink.MAV_CMD_REQUEST_MESSAGE,
+                    # 0,
+                    # 435,0, 0, 0, 0, 0, 0)
+                    print("here mode changing")
                     self.connection.mav.command_long_send(
-                    self.connection.target_system,
-                    self.connection.target_component,
-                    mavutil.mavlink.MAV_CMD_REQUEST_MESSAGE,
-                    0,
-                    435,0, 0, 0, 0, 0, 0)
-
-                    self.set_mode(FlightModes.)
-                except:
+                        self.connection.target_system,
+                        self.connection.target_component,
+                        mavutil.mavlink.MAV_CMD_DO_SET_MODE,
+                        0,
+                        1, msg['mode'], 0,0,0,0,0
+                    )
+                    
+                except Exception as E:
+                    print(E)
                     print("invalid flight mode for message %s", msg)
             
             if 'sensor' in msg:

@@ -8,14 +8,13 @@ interface ArmButtonProps {
 
 export default function ArmButton({armStatus} : ArmButtonProps) {
 
-    const [armed, setArmed] = useState(armStatus);
     const handleArm = () => {
-        (armStatus !== undefined) && sendArmRequest(!armed) 
+        (armStatus !== undefined) && sendArmRequest(!armStatus) 
     }
 
     return (
         <div>
-            <Button variant="contained" onClick={handleArm} disabled={(armStatus === undefined)}> {armed ? "Arm" : "Disarm"}</Button>
+            <Button variant="contained" onClick={handleArm} disabled={(armStatus === undefined)}> {armStatus ? "Disarm" : "Arm"}</Button>
         </div>
     )
 }
