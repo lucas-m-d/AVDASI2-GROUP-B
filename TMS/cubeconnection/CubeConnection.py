@@ -8,6 +8,7 @@ from .Logger import Logger
 from .ArduPilotModes import ArduPilotMode
 import traceback
 
+SCRIPTING_PRESSURE_DATA = 227
 
 class FlightMode(Enum):
     MANUAL = 0
@@ -280,8 +281,12 @@ class CubeConnection:
             m = self.connection.recv_msg()
             if m is None:
                 continue        
-
-            type = m.get_type()
+            
+            type = None
+            try:
+                type = m.get_type()
+            except:
+                print(m.to_dict())
             data = m.to_dict()
             msg = None
 
@@ -299,7 +304,10 @@ class CubeConnection:
                     #print("state: ", data["system_status"]) # https://mavlink.io/en/messages/common.html#MAV_STATE
                     self.logger.log(connected=True, armed=self.connection.motors_armed(), mode=data["base_mode"])
                     
-
+                case "MEMORY_VECT":
+                    ## pressure data
+                    print(data)
+                    print(m)
                 case "COMMAND_ACK":
 
                     if data["command"] == 511:
