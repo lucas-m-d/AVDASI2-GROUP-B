@@ -26,6 +26,7 @@ message_sender.MEMORY_VECT = {
 ---@return integer -- message id
 ---@return string -- encoded payload
 function message_sender.encode(msg, message)
+  gcs:send_text(MAV_SEVERITY_INFO, "Encoding message " .. msg)
     local message_map = msg
     if not message_map then
       -- we don't know how to encode this message, bail on it
@@ -59,6 +60,7 @@ end
 ---@param numpins number  -- array of 12 pressure datapoints as integer
 function message_sender.sendCustomData(data, numpins)
     -- check you have all 12 datapoints
+    gcs:send_text(MAV_SEVERITY_INFO, "Sending custom data")
     if type(data) ~= "table" or #data ~= numpins then
         error("too many values or not a table")
     end
@@ -79,3 +81,6 @@ function message_sender.sendCustomData(data, numpins)
     end
     mavlink:send_chan(1, message_sender.encode(message_sender.MEMORY_VECT, memoryVectMessage)) -- we'll see if this works
 end
+
+
+return message_sender
