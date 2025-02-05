@@ -111,9 +111,11 @@ function update() -- we run this whole function every UPDATE_INTERVAL_MS by call
   end
   if rc_switch_pos == 2 then -- HIGH, TELEM Servo Control
     
-    for servoNumber=1, #servoFunctions do
-      --gcs:send_text(6, string.format("SERVO%d_FUNCTION", servoNumber))
+    for servoNumber, servo_function in pairs(servoFunctions) do
+      -- get current output of servo
+      local servoOut = SRV_Channels:get_output_pwm(servo_function)
       param:set(string.format("SERVO%d_FUNCTION", servoNumber), 0)
+      SRV_Channels:set_output_pwm_chan_timeout(servoNumber, servoOut, 50) -- 50ms  Sets servo channel to specified PWM for a time in ms. This overrides any commands from the autopilot until the timeout expires.
     end
     --param:set("SERVO2_FUNCTION",0) -- SERVO2_FUNCTION is set to '0' which tells it that it's disabled, so we can control it from GCS
     gcs:send_text(6, string.format("AVDASI2: Servo %d function set to %d", 1, 0))

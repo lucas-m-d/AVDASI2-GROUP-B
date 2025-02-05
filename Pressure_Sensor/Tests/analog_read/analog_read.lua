@@ -35,10 +35,16 @@ local GET_NUM_PINS      = 0xFE
 local SET_PIN_INDEX     = 0xFF
 local MAV_SEVERITY_INFO =    6
 
+
+
+
 local num_pins = 0
 
 local arduino_i2c = i2c.get_device(I2C_BUS, SLAVE_ADDR)
 arduino_i2c:set_retries(10)
+
+local message_sender = require('message_sender')
+
 
 local function unpack_int(b)
     if type(b) ~= 'table' or #b == 0 then return ERROR_VALUE end
@@ -67,14 +73,26 @@ local function get_num_pins()
 end
 
 function update()
+
+    local pressure_data = {}
     for idx = 0, num_pins - 1 do
         -- request to store analog pin value in I2C registers for given index
         arduino_i2c:write_register(SET_PIN_INDEX, idx)
         -- now read the register data and collect its value as an signed integer
         local data = read_register_data()
-        gcs:send_named_float('A' .. idx, unpack_int(data))
+        if data ~= nil then
+            pressure_data[idx + 1] = data --lua is 1 based 
+        else
+            gcs:send_text(MAV_SEVERITY_INFO, "Data for sensor " .. idx .. " was nil")
+            return update, RUN_INTERVAL_MS
+        end
+
+        --gcs:send_named_float('A' .. idx, unpack_int(data))
         gcs:send_text(MAV_SEVERITY_INFO,  "A" .. idx .. ": " .. unpack_int(data))
     end
+    
+    message_sender.sendCustomData(pressure_data, num_pins) -- edit this line
+
     return update, RUN_INTERVAL_MS
 end
 
