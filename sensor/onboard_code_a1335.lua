@@ -117,7 +117,11 @@ function read_angle()   -- This function reads the angle registry of the sensor,
             local angle = (high * 256) + low    -- To recreate the true value of the registry, we must shift the high bits left by 8 places (since they represent larger unit values). Since there is no specific bitwise shift operator in LUA we simply multiply by 2^8 or 256.
             angle = angle & 0x0FFF  -- The first four bits do not contain data about the angle, but rather are used to find the registry, we don't need them. This line is a bitwise AND operation. Result will be 1 if both angle and 0x0FFF(= 0000111111111111) has 1 at the given position. What this does is sets the first four bits to zero, and keeps the rest as they were (since 0x0FFF has 1 at every other place, the final value depends on the bit in angle)
             angle = (angle / 4096) * 360 -- Conversion from bit value to degree, 4096 depends on the system (12bit in our case). You get this by 2^(bit size of the system)
-            angle = angle - zero_offset
+            if (angle - zero_offset) < 0 then
+                angle = (360 - math.abs(angle - zero_offset))
+            else
+                angle = angle - zero_offset
+            end
             gcs:send_text(6,"Flap angle: " .. tostring(angle) .. " deg")    -- This way we can see the angle printed in the console
             gcs:send_text(6,"Zero offset: " .. tostring(zero_offset))
             log(angle)  -- Sends angle data to get logged
