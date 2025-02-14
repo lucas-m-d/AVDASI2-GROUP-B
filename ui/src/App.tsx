@@ -1,46 +1,40 @@
-import { useState, useEffect,memo, useRef } from "react";
+import { useState, useEffect } from "react";
+import TestArtificialHorizon from "./ui/artificialHorizon/testArtificialHorizon";
 import { FlapControl } from "./ui/flightControlSurfaces/flaps/FlapControl";
 //import AutopilotPanel from "./ui/autopilotPanel/AutopilotPanel";
 import Grid from "@mui/material/Grid2"
-import { connectWebSocket,  latestData, socket, clearData, DroneData } from "./connection/connection";
+import { connectWebSocket,  latestData, socket, clearData } from "./connection/connection";
 import ArtificialHorizon from "./ui/artificialHorizon/ArtificialHorizon";
 import ArmButton from "./ui/arm/ArmButton";
 import { RCModeControls /*, RCWifiSwitch*/ } from "./ui/RC/RCModeButtons";
-//import RCSendControl from "./ui/RC/RCSendControl";
+import RCSendControl from "./ui/RC/RCSendControl";
 import {LivePlotMemoized} from "./ui/dataHistory/LivePlot"; 
 import FlightControlIndicators from "./ui/flightControlSurfaces/indicator/FlightControlIndicators";
 import ServoControls from "./ui/flightControlSurfaces/servos/ServoControls";
 
-const ArtificialHorizonMemoised = memo(ArtificialHorizon)
-const FlapControlMemoised = memo(FlapControl)
-
-const dataRefreshMS = 1000 / 5; // Refresh page 10 times a second
-const socketRefreshMS = 1000 / 2; // Refresh twice a second
-
 export default function App() {
-
+    const [data, setData] = useState(latestData);
     const [socketState, setSocketState] = useState(false); // Default to false, to handle unconnected state
-    const [, forceUpdate] = useState(0)
+    const dataRefreshRate = 1000 / 20; // Update data every 50ms
+    const socketRefreshRate = 1000 / 500; // Check socket state every 2ms
+
+
     useEffect(() => {
         // Establish WebSocket connection
         connectWebSocket("ws://localhost:8001");
-        
 
         // Data update interval
         const intervalId1 = setInterval(() => {
             // Ensure latestData is updated correctly
-            // if (socketState.current) { // check that there is actually new data.  Not doing this basically updates the state if idle at datarefreshrate
-            //     console.log("setting state:")
-
-            forceUpdate(i=> i+1)
-            
-        }, dataRefreshMS);
+            setData({ ...latestData });
+            //console.log(latestData.flapSensorPosition)
+        }, dataRefreshRate);
 
         // Socket connection status interval
         const intervalId2 = setInterval(() => {
             // Check if socket is defined and if it is ready
-            setSocketState(socket.readyState === WebSocket.OPEN) ;
-        }, socketRefreshMS);
+            setSocketState(socket && socket.readyState === 1);
+        }, socketRefreshRate);
 
         
 
@@ -48,16 +42,13 @@ export default function App() {
             clearInterval(intervalId1);
             clearInterval(intervalId2);
         };
-    }, []);
+    }, [dataRefreshRate, socketRefreshRate]);
 
     // on first load, clear data arrays (save memory)
     useEffect(() => {
         clearData()
-    }, []) 
-
-    useEffect(() => {
-        console.log("reloading")
-    })
+    }, []) // a;ljsdbfklahsgdfk
+    const testing = false;
 
     return (
         <div>
@@ -80,14 +71,18 @@ export default function App() {
 
             {/* Artificial Horizon Display */}
             <Grid size={3.5} component="div">
-                <ArtificialHorizonMemoised roll={latestData.roll} pitch={latestData.pitch} />
+                {testing ? (
+                    <TestArtificialHorizon />
+                ) : (
+                    <ArtificialHorizon roll={data.roll} pitch={data.pitch} />
+                )}
             </Grid>
 
             {/* RC Mode Controls, indicators */}
             <Grid size={1.75} component="div">
-                <RCModeControls mode={latestData.mode} />
+                <RCModeControls mode={data.mode} />
                 <div style={{ marginTop: "20px" }}>
-                <FlightControlIndicators ailL={latestData.servoAileronL} ailR={25} elev={latestData.servoElevator} rud={latestData.servoRudder}/>
+                <FlightControlIndicators ailL={data.servoAileronL} ailR={data.servoAileronR} elev={data.servoElevator} rud={latestData.servoRudder}/>
                 </div>
             </Grid>
 
@@ -95,7 +90,7 @@ export default function App() {
 
             {/* Flap Control */}
             <Grid size={2.5} component="div">
-                <FlapControlMemoised min={0} max={30} requested={latestData.flapRequestStatus} posArray={[latestData.flapSensorPosition, latestData.flapSensorPosition]} />
+                <FlapControl min={0} max={360} requested={data.flapRequestStatus} posArray={[data.flapSensorPosition, data.flapSensorPosition]} />
             </Grid>
 
             <Grid size={2} component="div">
@@ -109,7 +104,7 @@ export default function App() {
             
             <Grid size={2}>
                 Errors:
-                {latestData.errorMessages && latestData.errorMessages.map((msg, i) => {
+                {data.errorMessages && data.errorMessages.map((msg, i) => {
                     return(
                         <div key={i}>
                             {msg}
@@ -121,7 +116,7 @@ export default function App() {
             {/* Arm Button */}
             <Grid size={3} component="div">
                 currently armed? {latestData.armed ? "yes" : "no"}
-                <ArmButton armStatus={latestData.armed} safety={latestData.safety} />
+                <ArmButton armStatus={latestData.armed} />
             </Grid>
 
             

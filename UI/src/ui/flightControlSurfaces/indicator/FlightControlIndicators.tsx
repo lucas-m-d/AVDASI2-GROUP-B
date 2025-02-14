@@ -15,13 +15,13 @@ export default function FlightControlIndicators ({ailL, ailR, elev, rud} : Fligh
         <div>
             {/* aileron stuff*/}
             L Aileron
-            <HorizontalIndicator id={"AileronL"} min={-30} max={30} current={ailL}/>
+            <HorizontalIndicator id={"AileronL"} min={-100} max={100} current={ailL}/>
             R Aileron
-            <HorizontalIndicator id={"AileronR"}min={-30} max={30} current={ailR}/>
+            <HorizontalIndicator id={"AileronR"}min={-100} max={100} current={ailR}/>
             Elevator
-            <HorizontalIndicator id={"elevatorPosition"} min={-45} max={45} current={elev}/>
+            <HorizontalIndicator id={"elevatorPosition"}min={-100} max={100} current={elev}/>
             Rudder
-            <HorizontalIndicator id={"rudderPosition"}min={-40} max={40} current={rud}/>
+            <HorizontalIndicator id={"rudderPosition"}min={-100} max={100} current={rud}/>
         </div>
     )
 }

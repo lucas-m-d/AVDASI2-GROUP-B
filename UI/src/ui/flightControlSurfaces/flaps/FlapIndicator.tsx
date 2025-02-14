@@ -11,8 +11,7 @@ const FlapIndicatorStyle = {
     lineHeight: 10,
     backgroundColor: "#E0E0E0",
     requestColor: "blue",
-    positionColor:"blue",
-    positionOverflowColor: "red",
+    positionColor:"red",
     triangleWidth:10,
     triangleHeight:5
 }
@@ -58,23 +57,9 @@ export default function FlapIndicator({min, max, request, position}:flapIndicato
                 context.fillRect(xPositions[4], 0, indicatorWidths[4], indicatorHeight)
 
                 // left and right
-                if (Number(position[0]) > max){
-                    /// if it's going to overflow
-                    context.fillStyle=FlapIndicatorStyle.positionOverflowColor
-                    context.fillRect(xPositions[0],0, indicatorWidths[0], indicatorHeight)
-                } else {
-                    context.fillStyle=FlapIndicatorStyle.positionColor
-                    context.fillRect(xPositions[0],0, indicatorWidths[0], indicatorHeight*position[0]!/max)
-                }
-
-                if (Number(position[1]) > max){
-                    /// if it's going to overflow
-                    context.fillStyle=FlapIndicatorStyle.positionOverflowColor
-                    context.fillRect(xPositions[4],0, indicatorWidths[4], indicatorHeight)
-                } else {
-                    context.fillStyle=FlapIndicatorStyle.positionColor
-                    context.fillRect(xPositions[4],0, indicatorWidths[4], indicatorHeight*position[1]!/max)
-                }
+                context.fillStyle=FlapIndicatorStyle.positionColor
+                context.fillRect(xPositions[0],0, indicatorWidths[0], indicatorHeight*position[0]!/max)
+                context.fillRect(xPositions[4],0, indicatorWidths[4], indicatorHeight*position[1]!/max)
 
                 // requested
                 context.fillStyle=FlapIndicatorStyle.requestColor

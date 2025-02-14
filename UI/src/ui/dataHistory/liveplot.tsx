@@ -26,17 +26,18 @@ type  LivePlotDataPoint={
 //     { time_boot_ms: 900, flapPosition: 90 },
 //   ];
 
-const maxLength = 60*5
 export const LivePlotMemoized = memo(function LivePlot() {
 
     const [data, setData] = useState<LivePlotDataPoint[]>([])
     const loadTime = useRef(Date.now())
+    const maxLength = 60*5
+
     useEffect(() => {
         const intervalId = setInterval(() => {
             
             
             // Ensure flapSensorPosition has a default value of 0 if it's undefined or null
-            if (latestData.time_boot_ms !== undefined) { // if there is latest data
+            if (latestData.time_boot_ms !== undefined) {
                 setData((oldData) => {
                     if (oldData.length > maxLength){
                         oldData.shift();
@@ -66,7 +67,8 @@ export const LivePlotMemoized = memo(function LivePlot() {
 
     return (
         <div>
-            Live Data Plot
+            linechart here
+            
                 <LineChart
                     data={data}
                     width={500}
@@ -74,10 +76,9 @@ export const LivePlotMemoized = memo(function LivePlot() {
                 >
 
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                        dataKey="time" 
-                        tickFormatter={(val) => `${Math.floor(val / 60000)}m ${Math.round((val % 60000) / 1000)}s`} 
-                    />
+                    <XAxis dataKey="time" tickFormatter={((val) => {
+                        return Math.floor(val/60) + "m"+ Math.round(val%60) + "s"
+                    })}/>
                     <YAxis name="Degrees"/>
                     <Line dataKey="flapPosition"/>
                     <Line dataKey="pitch_deg" stroke={"red"}/>

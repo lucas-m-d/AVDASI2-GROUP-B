@@ -27,9 +27,6 @@
 ---@diagnostic disable: param-type-mismatch
 -- disable an error message - kept this from the example that this was built on, not sure if it's needed.
 
-
-local servoFunctions = {4, 2, 0, 21, 19, 0, 7, 8}-- servo{n}'s function.  
-
 -- global definitions
 local MAV_SEVERITY = {EMERGENCY=0, ALERT=1, CRITICAL=2, ERROR=3, WARNING=4, NOTICE=5, INFO=6, DEBUG=7} -- you can redefine MAVLINK error codes, these are defaults
 local PARAM_TABLE_KEY = 54 -- things are stored in tables, you can have up to 200 - make sure they don't clash
@@ -59,13 +56,11 @@ assert(param:add_table(PARAM_TABLE_KEY, PARAM_TABLE_PREFIX, 3), "AVDASI2: could 
   // @Values: 300:Scripting1, 301:Scripting2, 302:Scripting3, 303:Scripting4, 304:Scripting5, 305:Scripting6, 306:Scripting7, 307:Scripting8
   // @User: Standard
 --]]
-local RC_SCRIPTING = bind_add_param('RC_FUNC', 1, 300)  -- SCcreates a parameter called 'AVDASI2_RC_FUNC' (prefix is from the global definitions section above), in position 1 in the table, and look for changes in the RC input mapped to 'Scripting1' (which is what the '300' means) in Mission Planner
-local SAS_SCRIPTING = bind_add_param('RC_SAS_FUNC', 2, 301) --- creates parameter 'SAS_SCRIPTING' at position 1, bound to SCRIPTING_5
+local RC_SCRIPTING = bind_add_param('RC_FUNC', 1, 300) -- creates a parameter called 'AVDASI2_RC_FUNC' (prefix is from the global definitions section above), in position 1 in the table, and look for changes in the RC input mapped to 'Scripting1' (which is what the '300' means) in Mission Planner
 
 -- local variables and definitions
 local UPDATE_INTERVAL_MS = 100 -- check for changes 10x/second
 local last_rc_switch_pos = -1   -- last known rc switch position.  Used to detect change in RC switch position. Initially set to an impossible value.
-local last_sas_switch_pos = -1
 
 -- initialisation
 gcs:send_text(MAV_SEVERITY.INFO, "AVDASI2: started") -- just log an info message
@@ -73,11 +68,13 @@ gcs:send_text(MAV_SEVERITY.INFO, "AVDASI2: started") -- just log an info message
 -- the main update function
 function update() -- we run this whole function every UPDATE_INTERVAL_MS by calling itself again on each 'return'
 
+  local servoFunctions = {1,4,19,5,19,19,19,2} -- for each servo give it a function
+  for servoNumber = 0, #servoFunctions do
+    --gcs:send_text(6, string.format("SERVO%d_FUNCTION", servoNumber))
+  end
 
   -- get RC switch position
   local rc_switch_pos = rc:get_aux_cached(RC_SCRIPTING:get())
-  local sas_switch_pos = rc:get_aux_cached(SAS_SCRIPTING:get())
-
   if not rc_switch_pos then
     -- if rc switch has never been set then return immediately
     return update, UPDATE_INTERVAL_MS -- run the 'update' function again after UPDATE_INTERVAL_MS, don't do anything below here until things are initialised properly
@@ -87,21 +84,14 @@ function update() -- we run this whole function every UPDATE_INTERVAL_MS by call
   if last_rc_switch_pos == -1 then
     last_rc_switch_pos = rc_switch_pos
   end
-  if last_sas_switch_pos == -1 then
-    last_sas_switch_pos = sas_switch_pos
-  end
   --gcs:send_text(MAV_SEVERITY.INFO, "AVDASI2: test1")
   -- check if user has moved RC switch
-
-  if rc_switch_pos == last_rc_switch_pos and sas_switch_pos == last_sas_switch_pos then -- if nothing has changed...
-    
+  if rc_switch_pos == last_rc_switch_pos then -- if nothing has changed...
     gcs:send_text(6, string.format("AVDASI2: rc_switch_pos is %d", rc_switch_pos))
     return update, UPDATE_INTERVAL_MS -- ...jump out and end here, setting things up to run again in UPDATE_INTERVAL_MS
   end
-
-
   last_rc_switch_pos = rc_switch_pos -- if things have changed then update last position
-  last_sas_switch_pos = sas_switch_pos
+
 
 --####################
 --#
@@ -112,21 +102,13 @@ function update() -- we run this whole function every UPDATE_INTERVAL_MS by call
 --####################
 
   -- set servo function based on switch position 
-  -- IF THE RC SWITCH POS HAS CHANGED
   if rc_switch_pos == 0 then -- LOW, Manual RC Control
     for servoNumber, servo_function in pairs(servoFunctions) do
       param:set(string.format("SERVO%d_FUNCTION", servoNumber), servo_function)
     end
-    -- if MANUAL RC CONTROL, we can change the the mode to STABILISE
-    if sas_switch_pos ~= last_sas_switch_pos then
-      if sas_switch_pos == 0 then -- LOW, SAS off, MANUAL flight mode
-        vehicle:set_mode(0)
-      elseif rc_switch_pos == 2 then -- HIGH, 
-        vehicle:set_mode(2)
-      end
-    end
+    --param:set("SERVO2_FUNCTION",19) -- Servo2 (usually elevator - check your setup) is set to '19' which tells it that it's an elevator
+    --gcs:send_text(6, string.format("AVDASI2: Servo %d function set to %d", 1, 19))
   end
-
   if rc_switch_pos == 2 then -- HIGH, TELEM Servo Control
     
     for servoNumber=1, #servoFunctions do
@@ -136,10 +118,6 @@ function update() -- we run this whole function every UPDATE_INTERVAL_MS by call
     --param:set("SERVO2_FUNCTION",0) -- SERVO2_FUNCTION is set to '0' which tells it that it's disabled, so we can control it from GCS
     gcs:send_text(6, string.format("AVDASI2: Servo %d function set to %d", 1, 0))
   end
-
-
-  
-
 
   return update, UPDATE_INTERVAL_MS  -- run the 'update' function again after UPDATE_INTERVAL_MS
 end
