@@ -1,14 +1,13 @@
 import asyncio
-import pymavlink
 import json
 import websockets
-from cubeconnection.CubeConnection import CubeConnection, FlightMode
+from cubeconnection.CubeConnection import CubeConnection
+
 PORT = 8001
 CONSTR = 'udp:0.0.0.0:14550' # use this for UDP connection
 #CONSTR = 'com6'
-TEST = False
 
-DISCONNECTED_MSG_INTERVAL = 2
+
 
 
 ##con = asyncio.create_task(CubeConnection(CONSTR, testing=TEST))
@@ -22,22 +21,12 @@ DISCONNECTED_MSG_INTERVAL = 2
 
         
 async def main():
-    con = CubeConnection(CONSTR, testing=TEST)
+    con = CubeConnection(CONSTR)
     asyncio.create_task(con.init())
 
     async def websocket_handler(websocket, path):
-        """Main handler for each connected client."""
-        while not con.initialised.is_set():
-            
-            await websocket.send(json.dumps({
-                "type":"ERROR",
-                "ERROR":0
-            }))
-            await asyncio.sleep(DISCONNECTED_MSG_INTERVAL)
-            await con.init()
         
-        con.update(websocket)
-        
+        await con.update(websocket=websocket)
         
         try:
             async for message in websocket:
@@ -45,9 +34,11 @@ async def main():
 
         except websockets.ConnectionClosed:
             print("Connection closed")
+        
+        finally:
+            con.messageLoop() ## keep running message loop without websocket
 
-        # finally:
-        #     send_task.cancel()  # Cancel the sending task if the connection closes
+
 
     async with websockets.serve(websocket_handler, "localhost", PORT):
         await asyncio.Future()  # Run forever
