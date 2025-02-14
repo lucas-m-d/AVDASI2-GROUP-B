@@ -32,7 +32,7 @@ export default function HorizontalIndicator ({min, max, current, id, width, heig
             if (context) {
                 var canvasWidth = document.getElementById(id)!.getBoundingClientRect().width;
 
-                context.clearRect(0, 0, canvasWidth!, height!);
+                context.clearRect(0, 0, canvas.width, canvas.height);
 
                 context.fillStyle = HorizontalIndicatorStyle.backgroundColor
 
@@ -61,8 +61,8 @@ export default function HorizontalIndicator ({min, max, current, id, width, heig
 
                     context.stroke()
                 }
-                
                 context.save()
+                
             }
             
         }

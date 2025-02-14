@@ -47,7 +47,7 @@ export default function VerticalIndicatorGauge({min, max, request, position}:Ind
         if (canvas) {
             const context = canvas?.getContext("2d")
             if (context){
-                context.clearRect(0, 0, width, height);
+                context.clearRect(0, 0, canvas.width, canvas.height);
                 //context.translate(0, height/2)
 
                 // create a background rectangle 
@@ -74,8 +74,6 @@ export default function VerticalIndicatorGauge({min, max, request, position}:Ind
                 context.fillText("REQ", xPositions[2] + indicatorWidths[2]/2, height)  
                 context.fillText("R", xPositions[4] + indicatorWidths[4]/2, height)
                 
-
-                context.save()
             }
         }
     })

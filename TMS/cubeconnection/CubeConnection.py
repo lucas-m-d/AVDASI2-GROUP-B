@@ -4,10 +4,19 @@ import asyncio
 import json
 from enum import Enum
 from .Logger import Logger
+from .ServoConfigure import ServoConfiguration, SERVO
+
 
 from .ArduPilotModes import ArduPilotMode
 import traceback
 
+SCRIPTING_PRESSURE_DATA = 227
+PRESSURE_SENSOR_MSG_ID = 0xef
+FLAP_RC_CHANNEL = 7
+
+REFRESH_TIME_WS_CONNECTED = 1/10000 #s
+REFRESH_TIME_WS_DISCONNECTED = 1/50 # s
+CUBE_DISCONNECTED_INTERVAL = 2
 
 class FlightMode(Enum):
     MANUAL = 0
@@ -17,72 +26,107 @@ class RCWifiControl(Enum):
     RC = 0
     WiFi = 1
 
-class SERVO(Enum):
-    '''Configure the ports connected to the cube'''
-    # servo outputs
-    AILERON_PORT = 1
-    AILERON_SB = 2
-    FLAP_PORT = 3
-    FLAP_SB = 4
-    ELEV = 5
-    RUDDER = 6
-    ## placeholder flap 
-    FLAP = 13
-
-
 class CubeConnection:
 
     ## might be an idea to move all of the commands to a separate file, as it's making this class extremely long 
-    def __init__(self, connection_string, testing=False):
+    def __init__(self, connection_string):
         '''
         Required info from the mav
         '''
 
         self.req_data = ["ATTITUDE"]
 
-        self.testing = testing
         self.refresh_attitude = 1/10
         self.refresh_servo = 1/2
         self.refresh_heartbeat = 1/1
-        self.TIMEOUT = 10
-        self._latest_message_ID = 0       
+        self.TIMEOUT = 5 ### seconds
+
         self.connection_string = connection_string
         self.connection = None
-        self.flap_pins = [10]
+        
         self.initialised = asyncio.Event()
-        self.refresh_check = 3
-        self.blocking = True
+
+
         # set up a connection here to the cubepilot
         self.logger = Logger()
-        
-        self.possible_modes = []
-        
+
+        self.servoConfiguration: type[ServoConfiguration] | None = None
+
             
         self.time = time.time()
 
     async def init(self):
         try:
-            if not self.testing:
-                self.connection = mavutil.mavlink_connection(self.connection_string, baud=111100)
-                print("waiting for heartbeat")
-                connected = self.connection.wait_heartbeat(timeout=self.TIMEOUT)
-                
-                if not connected:
-                    
-                    raise Exception("No connection")
-                
-                print("Connection: Heartbeat from system (system %u component %u)" % (self.connection.target_system, self.connection.target_component))
             
-                
-                self.flap_pins = [10]
+            self.connection = mavutil.mavlink_connection(self.connection_string, baud=111100)
+            print("waiting for heartbeat")
+            connected = self.connection.wait_heartbeat(timeout=self.TIMEOUT)
 
-                # write params changing servo min and max
-                #self.connection.mav.
+            if not connected:
+                print("No connection")
+                ##await self.init()
+                return
+            
+            print("Connection: Heartbeat from system (system %u component %u)" % (self.connection.target_system, self.connection.target_component))
+            
 
-                self.initialised.set()
-            else:
-                
-                print("testing data")
+
+            #### configure it here
+            # write params changing servo min and max
+            #self.connection.mav.
+
+            self.servoConfiguration = ServoConfiguration(self.connection)
+            self.servoConfiguration.writeServoParams()
+
+            #MESSAGE_TYPES = ["HEARTBEAT", "COMMAND_ACK", "NAMED_VALUE_FLOAT", "SERVO_OUTPUT_RAW", "ATTITUDE"]
+
+            self.connection.mav.command_long_send(
+                self.connection.target_system,
+                self.connection.target_component,
+                mavutil.mavlink.MAV_CMD_RUN_PREARM_CHECKS,
+                0,0,0,0,0,0,0,0
+            )
+            ## change data rates
+            self.changeDataRate(0, self.refresh_heartbeat) 
+            self.changeDataRate(36, self.refresh_servo)
+            self.changeDataRate(30, self.refresh_attitude)
+
+            ## start mate's script
+            self.connection.mav.param_set_send(
+                self.connection.target_system,
+                self.connection.target_component,
+                b'SCR_USER1',
+                1,
+                mavutil.mavlink.MAV_PARAM_TYPE_REAL32
+            )
+
+            # start RC switching script
+            self.connection.mav.param_set_send(
+                self.connection.target_system,
+                self.connection.target_component,
+                b'SCR_USER2',
+                1,
+                mavutil.mavlink.MAV_PARAM_TYPE_REAL32
+            )
+
+            ## disable checking before arming the servos
+            self.connection.mav.param_set_send(
+                self.connection.target_system,
+                self.connection.target_component,
+                b'ARMING_CHECK',
+                0,
+                mavutil.mavlink.MAV_PARAM_TYPE_REAL32
+            )  
+
+            ## disarm cubepilot
+            self.connection.mav.command_long_send(
+                self.connection.target_system,
+                self.connection.target_component,
+                mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
+                0,0,22196,0,0,0,0,0
+            )
+            self.initialised.set()
+            
         except Exception as E:
             print(E)
 
@@ -101,7 +145,7 @@ class CubeConnection:
         self.connection.mav.param_set_send(
             self.connection.target_system,
             self.connection.target_component,
-            b'SENSOR_ZERO',
+            b'SCR_USER3',
             1,
             mavutil.mavlink.MAV_PARAM_TYPE_REAL32
         )
@@ -146,9 +190,6 @@ class CubeConnection:
                 *channels
             )
             print("RC_OVERRIDE sent:", channels)
-            #response = self.connection.recv_match(type="COMMAND_ACK", blocking=True)
-            #print(response)
-
             return True
         except Exception as e:
             print("Error sending RC_OVERRIDE:", e)
@@ -159,122 +200,36 @@ class CubeConnection:
         """
         if self.send_rc_override([0, 0, 0, 0, 0, 0, 0, 0]):
             print("RC_OVERRIDE cleared.")
-        if self.testing:
-            data = self._testingGenerateData()
 
-    def sendArmRequest(self, arm):
-        print("sending request")
-        
+
+    def sendArmRequest(self, arm,force=True):       
         print("arm request", arm)
+        forceSend = 0
+        if arm and force:
+            forceSend=21196
+
+        
         self.connection.mav.command_long_send(
             self.connection.target_system,
             self.connection.target_component,
             mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
             0,
-            int(arm), 21196, 0, 0, 0, 0, 0)
-    
-    def sendAngle(self, servoReq, angle): ##todo
-        print(f"{servoReq}, requested angle:", angle)
-        servosToMove = []
-        pwm_command = 0
-        try:
-            match servoReq:
-                case SERVO.FLAP:
-                    print("flap request")
-                    servosToMove = [SERVO.FLAP_PORT.value, SERVO.FLAP_SB.value]
-                    pwm_command= 1500 + 50 * (angle/30)
-                    
-                case SERVO.AILERON_PORT:
-                    pwm_command= 1500 + 50 * (angle/30)
-                    servosToMove = [SERVO.AILERON_PORT.value]
-                    pass
-                case SERVO.AILERON_SB:
-                    pwm_command= 1500 + 50 * (angle/30)
-                    servosToMove = [SERVO.AILERON_PORT.value]
-                case SERVO.ELEV:
-                    servosToMove = [SERVO.ELEV]
-                    pwm_command= 1500 + 50 * (angle/30)
-                case SERVO.RUDDER:
-                    pwm_command= 1500 + 50 * (angle/30)
-                    servosToMove = [SERVO.AILERON_PORT.value]
-                    
-                case _:
-                    print("invalid servo request")
-                    return 
-                
-            for servo in servosToMove:
-                self.connection.mav.command_long_send(
-                    self.connection.target_system,
-                    self.connection.target_component,
-                    mavutil.mavlink.MAV_CMD_DO_SET_SERVO,
-                    0,
-                    servo,
-                    pwm_command,
-                    0,0,0,0,0
-                )
-                
-        except Exception as e:
-            print("error sending flap request message")
-            print(e)
-                   
-            
-                    
+            int(arm), forceSend, 0, 0, 0, 0, 0)
         
             
 
-    def update(self, websocket):
+    async def update(self, websocket):
+        while not self.initialised.is_set():
+            print("awaiting connection")
+            print("Waiting for connection to initialise")            
+            asyncio.sleep(CUBE_DISCONNECTED_INTERVAL)
+
+
         asyncio.gather(self.messageLoop(websocket=websocket))
 
+
     async def messageLoop(self, websocket=None):
-        refresh_time = 0.005
-        #MESSAGE_TYPES = ["HEARTBEAT", "COMMAND_ACK", "NAMED_VALUE_FLOAT", "SERVO_OUTPUT_RAW", "ATTITUDE"]
-        self.connection.mav.set_mode_send(self.connection.target_system, mavutil.mavlink.MAV_MODE_FLAG_DECODE_POSITION_SAFETY, 0) ## turn off safety
 
-        self.connection.mav.command_long_send(
-            self.connection.target_system,
-            self.connection.target_component,
-            mavutil.mavlink.MAV_CMD_RUN_PREARM_CHECKS,
-            0,0,0,0,0,0,0,0
-        )
-        ## change data rates
-        self.changeDataRate(0, self.refresh_heartbeat) 
-        self.changeDataRate(36, self.refresh_servo)
-        self.changeDataRate(30, self.refresh_attitude)
-
-        ## start mate's script
-        self.connection.mav.param_set_send(
-            self.connection.target_system,
-            self.connection.target_component,
-            b'SCR_USER1',
-            1,
-            mavutil.mavlink.MAV_PARAM_TYPE_REAL32
-        )
-        self.connection.mav.param_set_send(
-            self.connection.target_system,
-            self.connection.target_component,
-            b'SCR_USER2',
-            1,
-            mavutil.mavlink.MAV_PARAM_TYPE_REAL32
-        )
-
-        ## disable checking before arming the servos
-        self.connection.mav.param_set_send(
-            self.connection.target_system,
-            self.connection.target_component,
-            b'ARMING_CHECK',
-            0,
-            mavutil.mavlink.MAV_PARAM_TYPE_REAL32
-        )
-
-        self.connection.mav.command_long_send(
-            self.connection.target_system,
-            self.connection.target_component,
-            mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
-            0,1,22196,0,0,0,0,0
-        )
-        # force arming?
-        
-        ## check to see what modes are available
 
         while True:
             m = self.connection.recv_msg()
@@ -286,20 +241,28 @@ class CubeConnection:
             msg = None
 
             match type:
+                case "ATTITUDE":
+                    msg = {
+                        "type":"ATTITUDE",
+                        "time_boot_ms":data["time_boot_ms"],
+                        "roll":data["roll"],
+                        "pitch":data["pitch"],
+                        "yaw":data["yaw"]
+                    }
+
+                    self.logger.log(roll=msg["roll"], pitch=msg["pitch"], pitchrate=data["pitchspeed"], rollrate=data["rollspeed"], yawrate=data["yawspeed"])
+
                 case "HEARTBEAT":
+                    if (data["base_mode"]) == 4:continue
                     msg = {
                         "type":"HEARTBEAT",
                         "mode":data["base_mode"],
                         "connected":True,
-                        "armed":self.connection.motors_armed()
-                    }
-                    if not self.connection.motors_armed():
-                        print("motors not armed")
-                    #print("armed: ", self.connection.motors_armed())
-                    #print("state: ", data["system_status"]) # https://mavlink.io/en/messages/common.html#MAV_STATE
+                        "armed":self.connection.motors_armed(),
+                        
+                    }                        
                     self.logger.log(connected=True, armed=self.connection.motors_armed(), mode=data["base_mode"])
                     
-
                 case "COMMAND_ACK":
 
                     if data["command"] == 511:
@@ -332,62 +295,45 @@ class CubeConnection:
                     
                     self.logger.log(time_boot_ms=data["time_boot_ms"], flapSensorPosition=data["value"])
 
-                case "SERVO_OUTPUT_STATUS": ### change here to ACTUATOR_OUTPUT_STATUS?
+                case "SERVO_OUTPUT_RAW": ### change here to ACTUATOR_OUTPUT_STATUS?
                     try:
-                        rawToAngle = lambda a : (a-1100) * 90/900 # check.  Might be better to use scaled outputs instead
                         msg = {
                             "type":"SERVO_OUTPUT_RAW",
-                            "flapRequested":rawToAngle(data[f"servo{SERVO.FLAP.value}_raw"]),
-                            "aileronL":rawToAngle(data[f"servo{SERVO.AILERON_PORT.value}_raw"]),
-                            "aileronR":rawToAngle(data[f"servo{SERVO.AILERON_SB.value}_raw"]),
-                            "rudder":rawToAngle(data[f"servo{SERVO.RUDDER.value}_raw"]),
-                            "elevator":rawToAngle(data[f"servo{SERVO.ELEVATOR.value}_raw"]) # change servo outputs later when final assembly completed
+                            "flapRequested":self.servoConfiguration.servos["FLAP_PORT"].pwmToAngle(data[f'servo{SERVO.FLAP_PORT.value}_raw']), ## flap port for now
+                            "aileronL":self.servoConfiguration.servos["AILERON_PORT"].pwmToAngle(data[f'servo{SERVO.AILERON_PORT.value}_raw']),
+                            "aileronR":self.servoConfiguration.servos["AILERON_SB"].pwmToAngle(data[f'servo{SERVO.AILERON_SB.value}_raw']),
+                            "rudder":self.servoConfiguration.servos["RUDDER"].pwmToAngle(data[f'servo{SERVO.RUDDER.value}_raw']),
+                            "elevator":self.servoConfiguration.servos["ELEV"].pwmToAngle(data[f'servo{SERVO.ELEV.value}_raw'])
                         }
-                        #self.logger.log(aileronL=msg["aileronL"], flapRequested=msg["flapRequested"], aileronR=msg["aileronR"], rudder=msg["rudder"], elevator=msg["elevator"])
+                        self.logger.log(aileronL=msg["aileronL"], flapRequested=msg["flapRequested"], aileronR=msg["aileronR"], rudder=msg["rudder"], elevator=msg["elevator"])
 
                     except Exception as E:
-                        #print(data)
                         print("error here")
                         print(E)
-                        pass
-                    
-                case "ATTITUDE":
-                    msg = {
-                        "type":"ATTITUDE",
-                        "time_boot_ms":data["time_boot_ms"],
-                        "roll":data["roll"],
-                        "pitch":data["pitch"],
-                        "yaw":data["yaw"]
-                    }
-                    self.logger.log(roll=msg["roll"], pitch=msg["pitch"])
-
-                case "AVAILABLE_MODES":
-                    ## print available modes
-                    print(data)
-
+                        
+                case "RC_CHANNELS_RAW":
+                    try:
+                        continue
+                        flapChannelValue = data[f"chan{FLAP_RC_CHANNEL}_RAW"] / 100
+                        self.servoConfiguration.moveFlap(flapChannelValue)
+                        
+                    except Exception as E:
+                        print(E)
+                case "AVAILABLE_MODES":print(data)
                 case "BAD_DATA":print(data)
                 
             if msg is not None and websocket is not None:
-                await websocket.send(json.dumps(msg))   
+                await websocket.send(json.dumps(msg)) 
+                await asyncio.sleep(REFRESH_TIME_WS_CONNECTED)
 
-            await asyncio.sleep(refresh_time)
+            if websocket is None:
+                await asyncio.sleep(REFRESH_TIME_WS_DISCONNECTED)
+
 
 
     async def handle(self, message):
         '''
         deal with incoming messages from the websocket
-        should simplify later -> could be done better with a match/case 
-        Should have the FE send a request like
-        {
-        "type":"request",
-        "request":"flap/arm/override etc.",
-        "value":123
-        }
-        rather than
-        {
-        "type":"request",
-        "flap":5
-        }
         '''
         try:
             
@@ -395,42 +341,34 @@ class CubeConnection:
             print(msg) 
             
             if 'flap' in msg:
-                self.sendAngle(SERVO.FLAP, int(msg['flap']))  # angle in degrees?
+                self.servoConfiguration.sendAngle(SERVO.FLAP, int(msg['flap']))  # angle in degrees?
             elif 'aileronL' in msg:
-                self.sendAngle(SERVO.AILERON_PORT, int(msg['aileronL']))
+                self.servoConfiguration.sendAngle(SERVO.AILERON_PORT, int(msg['aileronL']))
             elif 'aileronR' in msg:
-                self.sendAngle(SERVO.AILERON_SB, int(msg["aileronR"]))
+                self.servoConfiguration.sendAngle(SERVO.AILERON_SB, int(msg["aileronR"]))
             elif 'rudder' in msg:
-                self.sendAngle(SERVO.RUDDER, int(msg['rudder']))
+                self.servoConfiguration.sendAngle(SERVO.RUDDER, int(msg['rudder']))
             elif 'elevator' in msg:
-                self.sendAngle(SERVO.ELEV, int(msg["elevator"]))
+                self.servoConfiguration.sendAngle(SERVO.ELEV, int(msg["elevator"]))
 
             if 'arm' in msg:
-                print("arming", bool(msg['arm']))
-
                 self.sendArmRequest(bool(msg['arm']))
+            ## deprecated - RC overriding
             if 'override' in msg:
-                # Example: { "override": [1500, 1500, 1500, 1500, 0, 0, 0, 0] }
                 print("overriding")
                 asyncio.ensure_future(self.send_rc_override(msg['override']))
+
+            ### does this work?
             if 'RCWiFiMode' in msg:
                 print("changing RC wifi mode")
                 nextControlMode = FlightMode(msg['RCWiFiMode'])
                 self.clear_rc_override()
             if 'mode' in msg:
-                print("changing mode")
                 # Example: { "mode": 81 }
                 try:
-                    #self.set_mode(msg['mode'])
-                    ## print modes
-                    # self.connection.mav.command_long_send(
-                    # self.connection.target_system,
-                    # self.connection.target_component,
-                    # mavutil.mavlink.MAV_CMD_REQUEST_MESSAGE,
-                    # 0,
-
-                    # 435,0, 0, 0, 0, 0, 0)
-                    print("here mode changing")
+                    print(f"changing mode to {msg['mode']}.")
+                    if msg['mode'] not in [mode.value for mode in ArduPilotMode]:
+                        print("requested flight mode may not be available")
                     self.connection.mav.command_long_send(
                         self.connection.target_system,
                         self.connection.target_component,
@@ -438,6 +376,7 @@ class CubeConnection:
                         0,
                         1, msg['mode'], 0,0,0,0,0
                     )
+                    #self.set_mode(msg['mode'])
                     
                 except Exception as E:
                     print(E)
@@ -445,9 +384,16 @@ class CubeConnection:
             
             if 'sensor' in msg:
                 if msg["sensor"] == "zero":
-                    ## set sensor 0
                     await self.sendZeroSensorRequest()
 
+            if 'safety' in msg:
+                try:                    
+                    self.connection.mav.set_mode_send(self.connection.target_system, mavutil.mavlink.MAV_MODE_FLAG_DECODE_POSITION_SAFETY, int(msg['safety'])) ## configure safety
+                except Exception as E:
+                    print(E)
+                    print("invalid safety message %s", msg)
+                
+
         except Exception as E:
-            print("Error\n", E)
+            print("Error handling message\n", E)
             print(traceback.format_exc())

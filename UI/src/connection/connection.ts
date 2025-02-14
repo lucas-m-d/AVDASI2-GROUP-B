@@ -1,4 +1,4 @@
-type DroneData = {
+export type DroneData = {
     roll: number | undefined;
     pitch: number | undefined;
     yaw: number | undefined;
@@ -12,18 +12,18 @@ type DroneData = {
     servoRudder: number | undefined;
     servoElevator: number | undefined;
     errorMessages: Array<string | undefined>;
+    currentTime: number;
+    safety: boolean | undefined
+
 };
 
 
 export let socket: WebSocket;
 export let latestData: DroneData = {} as DroneData; // drone data where everything is null
-export let dataHistory: Array<DroneData> = []
-const startTime = Date.now();
-var n = 0;
+
 
 export const clearData = () => {
     latestData = {} as DroneData;
-    dataHistory = []
 }
 
 const connectWebSocket = (url: string) => {
@@ -33,49 +33,51 @@ const connectWebSocket = (url: string) => {
         console.log("WebSocket connected");
     };
 
-    socket.onmessage = (event: MessageEvent) => {
+    socket.onmessage = ({ data }: MessageEvent) => {
+        const newData = JSON.parse(data);
+        const { type } = newData;
+        
+        latestData.currentTime = Date.now();
 
-        var newData = JSON.parse(event.data);
-        switch (newData.type){
-            case "ATTITUDE":
-                latestData.time_boot_ms = newData.time_boot_ms;
-                latestData.pitch = newData.pitch;
-                latestData.roll = newData.roll;
-                latestData.yaw = newData.yaw;
+        switch (type) {
+            case "ATTITUDE": {
+                const { time_boot_ms, pitch, roll, yaw } = newData;
+                
+                Object.assign(latestData, { time_boot_ms, pitch, roll, yaw });
                 break;
-    
-            case "HEARTBEAT":
-                latestData.mode = newData.mode;
-                latestData.armed = Boolean(newData.armed);
-                break;
+            }
 
-            case "SERVO_OUTPUT_RAW":
-                latestData.flapRequestStatus = newData.flapRequested;
-                latestData.servoAileronL = newData.aileronL;
-                latestData.servoAileronR = newData.aileronR;
-                latestData.servoRudder = newData.rudder;
-                latestData.servoElevator = newData.elevator;
+            case "HEARTBEAT": {
+                const { mode, armed } = newData;
+                var safety = (newData.mode & 128) != 0// if safety is on
+                Object.assign(latestData, { mode, armed: !!armed, safety: !!safety });
                 break;
+            }
+
+            case "SERVO_OUTPUT_RAW": {
+                const { flapRequested, aileronL, aileronR, rudder, elevator } = newData;
+                Object.assign(latestData, {
+                    flapRequestStatus: flapRequested,
+                    servoAileronL: aileronL,
+                    servoAileronR: aileronR,
+                    servoRudder: rudder,
+                    servoElevator: elevator,
+                });
+                break;
+            }
 
             case "ERROR":
-                console.log(newData);
-                //latestData.errorMessages =  [...latestData.errorMessages!, newData.message]
-
+                console.error(newData);
                 break;
 
             case "FLAP_SENSOR":
-                console.log(newData);
                 latestData.flapSensorPosition = newData.flapSensorPosition;
                 break;
 
             default:
-                console.log(event.data);
-                break;
+                console.warn("Unknown message:", data);
         }
-        
-        
-        n += 1
-    };
+    }
 
     socket.onclose = () => {
         latestData = {} as DroneData;

@@ -56,7 +56,7 @@ export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps)
                 }
 
 
-                context.clearRect(0, 0, width, height);
+                context.clearRect(0, 0, canvas.width, canvas.height);
                 
                 const yValuePerDegree = 0.5 * height / AHStyles.pitchRange
                 const pitchY = displayPitch * yValuePerDegree
