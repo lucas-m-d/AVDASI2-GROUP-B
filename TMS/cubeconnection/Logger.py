@@ -3,7 +3,7 @@ import time
 
 class Logger:
     def __init__(self):
-        self.logging_parameters = ["sys_time", "time_boot_ms", "connected", "mode", 
+        self.logging_parameters = ["sys_time", "time_boot_ms", "message","connected", "mode", 
                                    "pitch", "pitchrate",
                                    "roll", "rollrate",
                                    "yaw", "yawrate",

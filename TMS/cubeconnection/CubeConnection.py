@@ -118,14 +118,17 @@ class CubeConnection:
                 mavutil.mavlink.MAV_PARAM_TYPE_REAL32
             )  
 
-            ## disarm cubepilot
+            ## arm cubepilot
             self.connection.mav.command_long_send(
                 self.connection.target_system,
                 self.connection.target_component,
                 mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM,
-                0,0,22196,0,0,0,0,0
+                0,1,22196,0,0,0,0,0
             )
             self.initialised.set()
+
+            self.ardupilotMode = 0
+            self.gcsMode = 0
             
         except Exception as E:
             print(E)
@@ -203,12 +206,14 @@ class CubeConnection:
 
 
     def sendArmRequest(self, arm,force=True):       
-        print("arm request", arm)
-        forceSend = 0
-        if arm and force:
-            forceSend=21196
 
-        
+        forceSend = 0
+        if force:
+            forceSend=21196
+        if int(arm) ==1:
+            print("arming")
+        else:
+            print("disarming")
         self.connection.mav.command_long_send(
             self.connection.target_system,
             self.connection.target_component,
@@ -249,19 +254,35 @@ class CubeConnection:
                         "pitch":data["pitch"],
                         "yaw":data["yaw"]
                     }
+                
 
-                    self.logger.log(roll=msg["roll"], pitch=msg["pitch"], pitchrate=data["pitchspeed"], rollrate=data["rollspeed"], yawrate=data["yawspeed"])
+                    self.logger.log(message="ATTITUDE", roll=msg["roll"], pitch=msg["pitch"], pitchrate=data["pitchspeed"], rollrate=data["rollspeed"], yawrate=data["yawspeed"])
 
                 case "HEARTBEAT":
-                    if (data["base_mode"]) == 4:continue
+                    #if (data["base_mode"]) == 4:continue
+                    #print(mavutil.mode_string_v10(m))
+                    if data["autopilot"] == mavutil.mavlink.MAV_AUTOPILOT_ARDUPILOTMEGA:
+                        ## if ardupilotmega autopilot
+                        self.ardupilotMode = data["base_mode"]
+                        
+                    elif data["autopilot"] == mavutil.mavlink.MAV_AUTOPILOT_INVALID:
+                        ## gcs autopilot
+                        self.gcsMode = data["base_mode"]
+                    
+                    if self.ardupilotMode & mavutil.mavlink.MAV_MODE_FLAG_DECODE_POSITION_SAFETY:
+                        print("wtaf")
+                        print(self.ardupilotMode, mavutil.mavlink.MAV_MODE_FLAG_DECODE_POSITION_SAFETY)
+
+                    #print((self.gcsMode & mavutil.mavlink.MAV_MODE_FLAG_DECODE_POSITION_SAFETY))
                     msg = {
                         "type":"HEARTBEAT",
-                        "mode":data["base_mode"],
+                        "apMode":self.ardupilotMode,
+                        "gcsMode":self.gcsMode,
                         "connected":True,
                         "armed":self.connection.motors_armed(),
-                        
+                        "safety":(self.ardupilotMode & mavutil.mavlink.MAV_MODE_FLAG_DECODE_POSITION_SAFETY)
                     }                        
-                    self.logger.log(connected=True, armed=self.connection.motors_armed(), mode=data["base_mode"])
+                    self.logger.log(message="HEARTBEAT", connected=True, armed=self.connection.motors_armed(), mode=data["base_mode"])
                     
                 case "COMMAND_ACK":
 
@@ -283,7 +304,7 @@ class CubeConnection:
                         elif data["result"] ==4:
                             print("COMMAND FAILED")
 
-                    self.logger.log(command=data["command"], command_result=data["result"])
+                    self.logger.log(message="COMMAND_ACK", command=data["command"], command_result=data["result"])
 
                 case "NAMED_VALUE_FLOAT":
                     if data["name"] == "Sensor":
@@ -293,7 +314,7 @@ class CubeConnection:
                             "flapSensorPosition":data["value"]
                         }
                     
-                    self.logger.log(time_boot_ms=data["time_boot_ms"], flapSensorPosition=data["value"])
+                    self.logger.log(message="NAMED_VALUE_FLOAT", time_boot_ms=data["time_boot_ms"], flapSensorPosition=data["value"])
 
                 case "SERVO_OUTPUT_RAW": ### change here to ACTUATOR_OUTPUT_STATUS?
                     try:
@@ -305,12 +326,28 @@ class CubeConnection:
                             "rudder":self.servoConfiguration.servos["RUDDER"].pwmToAngle(data[f'servo{SERVO.RUDDER.value}_raw']),
                             "elevator":self.servoConfiguration.servos["ELEV"].pwmToAngle(data[f'servo{SERVO.ELEV.value}_raw'])
                         }
-                        self.logger.log(aileronL=msg["aileronL"], flapRequested=msg["flapRequested"], aileronR=msg["aileronR"], rudder=msg["rudder"], elevator=msg["elevator"])
+                        self.logger.log(message="SERVO_OUTPUT_RAW", aileronL=msg["aileronL"], flapRequested=msg["flapRequested"], aileronR=msg["aileronR"], rudder=msg["rudder"], elevator=msg["elevator"])
 
                     except Exception as E:
                         print("error here")
                         print(E)
-                        
+                case "ACTUATOR_OUTPUT_STATUS":
+                    try:
+                        servoOutputs = data["actuator"]
+                        active = data["active"]
+                        msg = {
+                            "type":"SERVO_OUTPUT_RAW",
+                            "flapRequested":self.servoConfiguration.servos["FLAP_PORT"].pwmToAngle(servoOutputs[SERVO.FLAP_PORT.value]), ## flap port for now
+                            "aileronL":self.servoConfiguration.servos["AILERON_PORT"].pwmToAngle(servoOutputs[SERVO.AILERON_PORT.value]),
+                            "aileronR":self.servoConfiguration.servos["AILERON_SB"].pwmToAngle(servoOutputs[SERVO.AILERON_SB.value]),
+                            "rudder":self.servoConfiguration.servos["RUDDER"].pwmToAngle(servoOutputs[SERVO.RUDDER.value]),
+                            "elevator":self.servoConfiguration.servos["ELEV"].pwmToAngle(servoOutputs[SERVO.ELEV.value])
+                        }
+                        self.logger.log(message="ACTUATOR_OUTPUT_STATUS", aileronL=msg["aileronL"], flapRequested=msg["flapRequested"], aileronR=msg["aileronR"], rudder=msg["rudder"], elevator=msg["elevator"])
+
+
+                    except Exception as E:
+                        print(E)
                 case "RC_CHANNELS_RAW":
                     try:
                         continue
@@ -387,7 +424,8 @@ class CubeConnection:
                     await self.sendZeroSensorRequest()
 
             if 'safety' in msg:
-                try:                    
+                try:                  
+                    print("turning safety to", int(msg['safety']))  
                     self.connection.mav.set_mode_send(self.connection.target_system, mavutil.mavlink.MAV_MODE_FLAG_DECODE_POSITION_SAFETY, int(msg['safety'])) ## configure safety
                 except Exception as E:
                     print(E)
