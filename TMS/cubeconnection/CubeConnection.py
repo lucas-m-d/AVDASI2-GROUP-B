@@ -205,7 +205,10 @@ class CubeConnection:
     def sendArmRequest(self, arm,force=True):       
         print("arm request", arm)
         forceSend = 0
-        if force:forceSend=21196
+        if arm and force:
+            forceSend=21196
+
+        
         self.connection.mav.command_long_send(
             self.connection.target_system,
             self.connection.target_component,
@@ -246,14 +249,17 @@ class CubeConnection:
                         "pitch":data["pitch"],
                         "yaw":data["yaw"]
                     }
+
                     self.logger.log(roll=msg["roll"], pitch=msg["pitch"], pitchrate=data["pitchspeed"], rollrate=data["rollspeed"], yawrate=data["yawspeed"])
 
                 case "HEARTBEAT":
+                    if (data["base_mode"]) == 4:continue
                     msg = {
                         "type":"HEARTBEAT",
                         "mode":data["base_mode"],
                         "connected":True,
-                        "armed":self.connection.motors_armed()
+                        "armed":self.connection.motors_armed(),
+                        
                     }                        
                     self.logger.log(connected=True, armed=self.connection.motors_armed(), mode=data["base_mode"])
                     
@@ -297,7 +303,7 @@ class CubeConnection:
                             "aileronL":self.servoConfiguration.servos["AILERON_PORT"].pwmToAngle(data[f'servo{SERVO.AILERON_PORT.value}_raw']),
                             "aileronR":self.servoConfiguration.servos["AILERON_SB"].pwmToAngle(data[f'servo{SERVO.AILERON_SB.value}_raw']),
                             "rudder":self.servoConfiguration.servos["RUDDER"].pwmToAngle(data[f'servo{SERVO.RUDDER.value}_raw']),
-                            "elevator":self.servoConfiguration.servos["AILERON_PORT"].pwmToAngle(data[f'servo{SERVO.AILERON_PORT.value}_raw'])
+                            "elevator":self.servoConfiguration.servos["ELEV"].pwmToAngle(data[f'servo{SERVO.ELEV.value}_raw'])
                         }
                         self.logger.log(aileronL=msg["aileronL"], flapRequested=msg["flapRequested"], aileronR=msg["aileronR"], rudder=msg["rudder"], elevator=msg["elevator"])
 
