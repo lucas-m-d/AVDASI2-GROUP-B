@@ -1,9 +1,12 @@
+import { Mode } from "@mui/icons-material";
+
 export type DroneData = {
     roll: number | undefined;
     pitch: number | undefined;
     yaw: number | undefined;
     time_boot_ms: number | undefined;
-    mode: number | undefined; // this needs to be redone
+    apMode: number | undefined; // this needs to be redone
+    gcsMode: number | undefined; // this needs to be redone
     armed: boolean | undefined;
     flapRequestStatus: number | undefined;
     flapSensorPosition: number | undefined;
@@ -13,7 +16,8 @@ export type DroneData = {
     servoElevator: number | undefined;
     errorMessages: Array<string | undefined>;
     currentTime: number;
-    safety: boolean | undefined
+    safety: boolean | undefined;
+    text:Array<string>
 
 };
 
@@ -48,14 +52,14 @@ const connectWebSocket = (url: string) => {
             }
 
             case "HEARTBEAT": {
-                const { mode, armed } = newData;
-                var safety = (newData.mode & 128) != 0// if safety is on
-                Object.assign(latestData, { mode, armed: !!armed, safety: !!safety });
+                const { apMode, gcsMode, armed, safety } = newData;
+                Object.assign(latestData, { apMode: apMode, gcsMode:gcsMode, armed: !!armed, safety: !!safety });
                 break;
             }
 
             case "SERVO_OUTPUT_RAW": {
                 const { flapRequested, aileronL, aileronR, rudder, elevator } = newData;
+                console.log(newData)
                 Object.assign(latestData, {
                     flapRequestStatus: flapRequested,
                     servoAileronL: aileronL,
@@ -73,7 +77,15 @@ const connectWebSocket = (url: string) => {
             case "FLAP_SENSOR":
                 latestData.flapSensorPosition = newData.flapSensorPosition;
                 break;
+            
+            case "STATUSTEXT":
+                latestData.text = [newData.text, ...latestData.text] // place at start
+                var textDataLength = latestData.text.length
+                if (textDataLength > 50) {
+                    latestData.text.splice(49, textDataLength-50)
+                }
 
+                break
             default:
                 console.warn("Unknown message:", data);
         }

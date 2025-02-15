@@ -10,6 +10,8 @@ import { RCModeControls /*, RCWifiSwitch*/ } from "./ui/RC/RCModeButtons";
 import {LivePlotMemoized} from "./ui/dataHistory/LivePlot"; 
 import FlightControlIndicators from "./ui/flightControlSurfaces/indicator/FlightControlIndicators";
 import ServoControls from "./ui/flightControlSurfaces/servos/ServoControls";
+import TextDisplay from "./ui/textdisplay/TextDisplay";
+import { ServoMinMax } from "./servoMinMax"
 
 const ArtificialHorizonMemoised = memo(ArtificialHorizon)
 const FlapControlMemoised = memo(FlapControl)
@@ -81,11 +83,13 @@ export default function App() {
             {/* Artificial Horizon Display */}
             <Grid size={3.5} component="div">
                 <ArtificialHorizonMemoised roll={latestData.roll} pitch={latestData.pitch} />
+                ARMED: {latestData.armed ? "YES" : "NO"}
+                <ArmButton armStatus={latestData.armed} safety={latestData.safety} />
             </Grid>
 
             {/* RC Mode Controls, indicators */}
             <Grid size={1.75} component="div">
-                <RCModeControls mode={latestData.mode} />
+                <RCModeControls mode={latestData.gcsMode} />
                 <div style={{ marginTop: "20px" }}>
                 <FlightControlIndicators ailL={latestData.servoAileronL} ailR={latestData.servoAileronR} elev={latestData.servoElevator} rud={latestData.servoRudder}/>
                 </div>
@@ -95,11 +99,12 @@ export default function App() {
 
             {/* Flap Control */}
             <Grid size={2.5} component="div">
-                <FlapControlMemoised min={0} max={30} requested={latestData.flapRequestStatus} posArray={[latestData.flapSensorPosition, latestData.flapSensorPosition]} />
+                <FlapControlMemoised min={ServoMinMax.FLAP_SB_MIN} max={ServoMinMax.FLAP_SB_MAX} requested={latestData.flapRequestStatus} posArray={[latestData.flapSensorPosition, latestData.flapSensorPosition]} />
             </Grid>
 
-            <Grid size={2} component="div">
+            <Grid size={3} component="div">
                 <ServoControls />
+                <TextDisplay textArray={latestData.text}/>
             </Grid>
 
             {/* RC Send Control */}
@@ -107,7 +112,7 @@ export default function App() {
                 <RCSendControl />
             </Grid> */}
             
-            <Grid size={2}>
+            {/* <Grid size={2}>
                 Errors:
                 {latestData.errorMessages && latestData.errorMessages.map((msg, i) => {
                     return(
@@ -116,12 +121,10 @@ export default function App() {
                         </div>
                     )
                 })}
-            </Grid>
+            </Grid> */}
 
             {/* Arm Button */}
             <Grid size={3} component="div">
-                currently armed? {latestData.armed ? "yes" : "no"}
-                <ArmButton armStatus={latestData.armed} safety={latestData.safety} />
             </Grid>
 
             

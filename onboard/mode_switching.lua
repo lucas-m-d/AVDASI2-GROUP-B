@@ -28,7 +28,7 @@
 -- disable an error message - kept this from the example that this was built on, not sure if it's needed.
 
 
-local servoFunctions = {4, 2, 0, 21, 19, 0, 7, 8}-- servo{n}'s function.  
+local servoFunctions = {4, 2, 0, 21, 19, 0, 2, 4}-- servo{n}'s function.  
 
 -- global definitions
 local MAV_SEVERITY = {EMERGENCY=0, ALERT=1, CRITICAL=2, ERROR=3, WARNING=4, NOTICE=5, INFO=6, DEBUG=7} -- you can redefine MAVLINK error codes, these are defaults
@@ -60,7 +60,7 @@ assert(param:add_table(PARAM_TABLE_KEY, PARAM_TABLE_PREFIX, 3), "AVDASI2: could 
   // @User: Standard
 --]]
 local RC_SCRIPTING = bind_add_param('RC_FUNC', 1, 300)  -- SCcreates a parameter called 'AVDASI2_RC_FUNC' (prefix is from the global definitions section above), in position 1 in the table, and look for changes in the RC input mapped to 'Scripting1' (which is what the '300' means) in Mission Planner
-local SAS_SCRIPTING = bind_add_param('RC_SAS_FUNC', 2, 301) --- creates parameter 'SAS_SCRIPTING' at position 1, bound to SCRIPTING_5
+local SAS_SCRIPTING = bind_add_param('SAS_FUNC', 2, 301) --- creates parameter 'SAS_SCRIPTING' at position 1, bound to SCRIPTING_5
 
 -- local variables and definitions
 local UPDATE_INTERVAL_MS = 100 -- check for changes 10x/second
@@ -112,29 +112,33 @@ function update() -- we run this whole function every UPDATE_INTERVAL_MS by call
 --####################
 
   -- set servo function based on switch position 
-  -- IF THE RC SWITCH POS HAS CHANGED
+  -- IF ANY SWITCH HAS CHANGED
   if rc_switch_pos == 0 then -- LOW, Manual RC Control
+  gcs:send_text(MAV_SEVERITY.INFO, "MANUAL RC CONTROL")
     for servoNumber, servo_function in pairs(servoFunctions) do
       param:set(string.format("SERVO%d_FUNCTION", servoNumber), servo_function)
     end
     -- if MANUAL RC CONTROL, we can change the the mode to STABILISE
     if sas_switch_pos ~= last_sas_switch_pos then
       if sas_switch_pos == 0 then -- LOW, SAS off, MANUAL flight mode
+      gcs:send_text(MAV_SEVERITY.INFO, string.format("sas switch pos %d", sas_switch_pos))
+        gcs:send_text(MAV_SEVERITY.INFO, "turning to manual mode")
         vehicle:set_mode(0)
       elseif rc_switch_pos == 2 then -- HIGH, 
+        gcs:send_text(MAV_SEVERITY.INFO, "turning to stabilise moemode")
         vehicle:set_mode(2)
       end
     end
   end
 
   if rc_switch_pos == 2 then -- HIGH, TELEM Servo Control
-    
+    gcs:send_text(MAV_SEVERITY.INFO, "TELEM Servo Control")
     for servoNumber=1, #servoFunctions do
       --gcs:send_text(6, string.format("SERVO%d_FUNCTION", servoNumber))
       param:set(string.format("SERVO%d_FUNCTION", servoNumber), 0)
     end
     --param:set("SERVO2_FUNCTION",0) -- SERVO2_FUNCTION is set to '0' which tells it that it's disabled, so we can control it from GCS
-    gcs:send_text(6, string.format("AVDASI2: Servo %d function set to %d", 1, 0))
+    --gcs:send_text(6, string.format("AVDASI2: Servo %d function set to %d", 1, 0))
   end
 
 

@@ -10,7 +10,7 @@
 
 -- Here I set up the I2C variables: ADDR is the I2C serial address of the sensor itself, REG_ADDR is the registry address of the angle registry 
 
-local ADDR = 0x0C   -- 0x0D, 0x0E or 0x0F depending on hardware configuration
+local ADDR = 0x0F   -- 0x0D, 0x0E or 0x0F depending on hardware configuration
 local REG_ADDR = 0x20
 local bus = 0   -- = 0 for I2C2 port on the carrier board
 
