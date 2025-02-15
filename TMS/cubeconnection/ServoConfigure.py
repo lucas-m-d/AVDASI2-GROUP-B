@@ -39,20 +39,22 @@ ___Angle(pwm) -> input pwm, output angle
 ## convert requested angle into output PWM
 def AileronPortPwm(angle):pass
 def FlapPortPwm(angle):pass
-def AileronSBPwm(angle):pass
+def AileronSBPwm(angle):
+    return float(-20*angle + 1350)
 def FlapSBPwm(angle):
-    return (1700 + 20 * angle)
+    return float(1700 + 20 * angle)
 
 def ElevPwm(angle):
-    return (-9.958*angle + 1303.2)
+    return float(-9.958*angle + 1303.2)
 
 def RudderPwm(angle):
-    return 12.167*angle + 1100
+    return float(12.167*angle + 1100)
 
 ### convert PWM values into deflection angle
 def AileronPortAngle(pwm):pass
 def FlapPortAngle(pwm):pass
-def AileronSBAngle(pwm):pass
+def AileronSBAngle(pwm):
+    return int(-0.05*pwm + 67.5)
 def FlapSBAngle(pwm):
     return int ((pwm-1700)/20)
 def ElevAngle(pwm):
@@ -97,9 +99,9 @@ class ServoConfiguration():
         self.servos: dict[str, type[CubeOrangeServo]] = { # this is the dictionary of our servo configs.  pin, min, max, angle->pwm, pwm->angle
             "AILERON_PORT": CubeOrangeServo(SERVO.AILERON_PORT.value, 1000, 2000, AileronPortPwm, AileronPortAngle),
             "FLAP_PORT": CubeOrangeServo(SERVO.FLAP_PORT.value, 1000, 2000, FlapPortPwm, FlapPortAngle),
-            "AILERON_SB": CubeOrangeServo(SERVO.AILERON_SB.value, 1000, 2000, AileronSBPwm, AileronSBAngle),
-
+            
             ### below servos are configured
+            "AILERON_SB": CubeOrangeServo(SERVO.AILERON_SB.value, 750, 1950, AileronSBPwm, AileronSBAngle, trim=1350, reversed=True),
             "FLAP_SB": CubeOrangeServo(SERVO.FLAP_SB.value, 1700, 2300, FlapSBPwm, FlapSBAngle),
             "ELEV": CubeOrangeServo(SERVO.ELEV.value, 1000, 1750, ElevPwm, ElevAngle, trim=1325),
             "RUDDER": CubeOrangeServo(SERVO.RUDDER.value, 650, 1600, RudderPwm, RudderAngle, trim=1050, reversed=True)
@@ -116,9 +118,9 @@ class ServoConfiguration():
                 
                 return
             
-            if servo.pin == SERVO.FLAP.value:break ## FLAP is a placeholder
+            if servo.pin == SERVO.FLAP.value:continue ## FLAP is a placeholder
             
-            
+
             self.con.mav.param_set_send(
                 self.con.target_system,
                 self.con.target_component,
