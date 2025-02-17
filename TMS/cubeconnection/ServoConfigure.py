@@ -37,28 +37,32 @@ ___Angle(pwm) -> input pwm, output angle
 '''
 
 ## convert requested angle into output PWM
-def AileronPortPwm(angle):pass
-def FlapPortPwm(angle):pass
+def AileronPortPwm(angle):
+    return float (-20 * angle + 1550)
+def FlapPortPwm(angle):
+    return float(-21.5 * angle + 2135)
 def AileronSBPwm(angle):
     return float(-20*angle + 1350)
 def FlapSBPwm(angle):
     return float(1700 + 20 * angle)
 
 def ElevPwm(angle):
-    return float(-9.958*angle + 1303.2)
+    return float(-10.654 * angle + 1555.4)
 
 def RudderPwm(angle):
     return float(12.167*angle + 1100)
 
 ### convert PWM values into deflection angle
-def AileronPortAngle(pwm):pass
-def FlapPortAngle(pwm):pass
+def AileronPortAngle(pwm):
+    return int((pwm - 1500) / -20)
+def FlapPortAngle(pwm):
+    return int((pwm - 2135) / -21.5)
 def AileronSBAngle(pwm):
     return int(-0.05*pwm + 67.5)
 def FlapSBAngle(pwm):
     return int ((pwm-1700)/20)
 def ElevAngle(pwm):
-    return int( (-0.1003*pwm + 130.73))
+    return int((pwm - 1555.4) / -10.654)
 def RudderAngle(pwm):
     return int(0.0816*pwm - 89.721)
 
@@ -96,14 +100,12 @@ class ServoConfiguration():
         self.con = mavlink_connection
         self.servos_written = False
         
-        self.servos: dict[str, type[CubeOrangeServo]] = { # this is the dictionary of our servo configs.  pin, min, max, angle->pwm, pwm->angle
-            "AILERON_PORT": CubeOrangeServo(SERVO.AILERON_PORT.value, 1000, 2000, AileronPortPwm, AileronPortAngle),
-            "FLAP_PORT": CubeOrangeServo(SERVO.FLAP_PORT.value, 1000, 2000, FlapPortPwm, FlapPortAngle),
-            
-            ### below servos are configured
+        self.servos: dict[str, type[CubeOrangeServo]] = { ## will need to double/triple check these!
+            "AILERON_PORT": CubeOrangeServo(SERVO.AILERON_PORT.value, 950, 2150, AileronPortPwm, AileronPortAngle, trim=1550, reversed=True),
+            "FLAP_PORT": CubeOrangeServo(SERVO.FLAP_PORT.value, 1500, 2150, FlapPortPwm, FlapPortAngle, trim=2150, reversed=True),
             "AILERON_SB": CubeOrangeServo(SERVO.AILERON_SB.value, 750, 1950, AileronSBPwm, AileronSBAngle, trim=1350, reversed=True),
-            "FLAP_SB": CubeOrangeServo(SERVO.FLAP_SB.value, 1700, 2300, FlapSBPwm, FlapSBAngle),
-            "ELEV": CubeOrangeServo(SERVO.ELEV.value, 1000, 1750, ElevPwm, ElevAngle, trim=1325),
+            "FLAP_SB": CubeOrangeServo(SERVO.FLAP_SB.value, 1700, 2300, FlapSBPwm, FlapSBAngle, trim=1700),
+            "ELEV": CubeOrangeServo(SERVO.ELEV.value, 1050, 2000, ElevPwm, ElevAngle, trim=1550, reversed=True),
             "RUDDER": CubeOrangeServo(SERVO.RUDDER.value, 650, 1600, RudderPwm, RudderAngle, trim=1050, reversed=True)
         }
 
@@ -153,7 +155,6 @@ class ServoConfiguration():
                     mavutil.mavlink.MAV_PARAM_TYPE_REAL32
                 )
             
-            # ignore trim parameter
 
         print("servo parameters written")
 
