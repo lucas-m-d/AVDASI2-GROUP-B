@@ -10,14 +10,14 @@
 
 -- Here I set up the I2C variables: ADDR is the I2C serial address of the sensor itself, REG_ADDR is the registry address of the angle registry 
 
-local ADDR = 0x0C   -- 0x0D, 0x0E or 0x0F depending on hardware configuration
+local ADDR = 0x0E   -- 0x0D, 0x0E or 0x0F depending on hardware configuration
 local REG_ADDR = 0x20
 local bus = 0   -- = 0 for I2C2 port on the carrier board
 
 
 -- Here I designate the file path and create a variable that the script will later use as the file
 
-local file_path = "/APM/LOGS/A1335_log.csv" -- This way it will be on the SD card, in the logs folder
+local file_path = "/APM/LOGS/A1335_log_E.csv" -- This way it will be on the SD card, in the logs folder
 local file
 
 
@@ -128,7 +128,7 @@ function read_angle()   -- This function reads the angle registry of the sensor,
             send_data(angle)    -- Sends angle data to be transmitted to the GCS
             return angle
         else
-            gcs:send_text(6, "Failed read from sensor") -- Mostly debug functionality
+            gcs:send_text(6, "Failed read from sensor " .. tostring(ADDR)) -- Mostly debug functionality
         end
     else
         return
@@ -170,7 +170,7 @@ function zero_sensor()
         current = (high * 256) + low
         current = current & 0x0FFF
         current = (current / 4096) * 360
-        gcs:send_text(6, "Set zero offset to: " .. tostring(current))
+        gcs:send_text(6, "Set zero offset to: " .. string.format("%x", ADDR))
         zero_offset = current
     else
         gcs:send_text(6, "Failed current angle read")
