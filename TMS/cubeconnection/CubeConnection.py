@@ -308,10 +308,13 @@ class CubeConnection:
 
                 case "NAMED_VALUE_FLOAT":
                     if data["name"] == "Sensor":
+                        pos = data["value"]
+                        if pos >= 360:pos = pos - 360
+
                         msg = {
                             "type":"FLAP_SENSOR",
                             "time_boot_ms":data['time_boot_ms'],
-                            "flapSensorPosition":data["value"]
+                            "flapSensorPosition":pos
                         }
                     
                     self.logger.log(message="NAMED_VALUE_FLOAT", time_boot_ms=data["time_boot_ms"], flapSensorPosition=data["value"])

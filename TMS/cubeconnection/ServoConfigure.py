@@ -42,7 +42,7 @@ def AileronPortPwm(angle):
 def FlapPortPwm(angle):
     return float(-21.5 * angle + 2135)
 def AileronSBPwm(angle):
-    return float(-20*angle + 1350)
+    return float(-21.161 * angle + 1392.9)
 def FlapSBPwm(angle):
     return float(1700 + 20 * angle)
 
@@ -58,7 +58,7 @@ def AileronPortAngle(pwm):
 def FlapPortAngle(pwm):
     return int((pwm - 2135) / -21.5)
 def AileronSBAngle(pwm):
-    return int(-0.05*pwm + 67.5)
+    return int((pwm - 1392.9)/-21.161)
 def FlapSBAngle(pwm):
     return int ((pwm-1700)/20)
 def ElevAngle(pwm):
@@ -103,7 +103,7 @@ class ServoConfiguration():
         self.servos: dict[str, type[CubeOrangeServo]] = { ## will need to double/triple check these!
             "AILERON_PORT": CubeOrangeServo(SERVO.AILERON_PORT.value, 950, 2150, AileronPortPwm, AileronPortAngle, trim=1550, reversed=True),
             "FLAP_PORT": CubeOrangeServo(SERVO.FLAP_PORT.value, 1500, 2150, FlapPortPwm, FlapPortAngle, trim=2150, reversed=True),
-            "AILERON_SB": CubeOrangeServo(SERVO.AILERON_SB.value, 750, 1950, AileronSBPwm, AileronSBAngle, trim=1350, reversed=True),
+            "AILERON_SB": CubeOrangeServo(SERVO.AILERON_SB.value, 700, 1975, AileronSBPwm, AileronSBAngle, trim=1350, reversed=True),
             "FLAP_SB": CubeOrangeServo(SERVO.FLAP_SB.value, 1700, 2300, FlapSBPwm, FlapSBAngle, trim=1700),
             "ELEV": CubeOrangeServo(SERVO.ELEV.value, 1050, 2000, ElevPwm, ElevAngle, trim=1550, reversed=True),
             "RUDDER": CubeOrangeServo(SERVO.RUDDER.value, 650, 1600, RudderPwm, RudderAngle, trim=1050, reversed=True)
