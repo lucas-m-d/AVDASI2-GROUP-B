@@ -38,9 +38,9 @@ ___Angle(pwm) -> input pwm, output angle
 
 ## convert requested angle into output PWM
 def AileronPortPwm(angle):
-    return float (-20 * angle + 1550)
+    return float (-19 * angle + 1550)
 def FlapPortPwm(angle):
-    return float(-21.5 * angle + 2135)
+    return float(-19.5 * angle + 2135)
 def AileronSBPwm(angle):
     return float (-21.161 * angle + 1392.9)
 def FlapSBPwm(angle):
@@ -50,21 +50,21 @@ def ElevPwm(angle):
     return float(-10.654 * angle + 1555.4)
 
 def RudderPwm(angle):
-    return float(12.167*angle + 1100)
+    return float(12.167*angle + 1200)
 
 ### convert PWM values into deflection angle
 def AileronPortAngle(pwm):
-    return int((pwm - 1500) / -20)
+    return int((pwm - 1500) / -19)
 def FlapPortAngle(pwm):
-    return int((pwm - 2135) / -21.5)
+    return int((pwm - 2135) / -19.5)
 def AileronSBAngle(pwm):
     return int((pwm - 1392.9) / -21.161)
 def FlapSBAngle(pwm):
-    return int ((pwm-15.08)/22.5)
+    return int ((pwm-1508)/22.5)
 def ElevAngle(pwm):
     return int((pwm - 1555.4) / -10.654)
 def RudderAngle(pwm):
-    return int(0.0816*pwm - 89.721)
+    return int((pwm - 1200) / 12.167)
 
 
 def mavlink_bytes(string: str):
@@ -104,9 +104,9 @@ class ServoConfiguration():
             "AILERON_PORT": CubeOrangeServo(SERVO.AILERON_PORT.value, 950, 2150, AileronPortPwm, AileronPortAngle, trim=1550, reversed=True),
             "FLAP_PORT": CubeOrangeServo(SERVO.FLAP_PORT.value, 1500, 2150, FlapPortPwm, FlapPortAngle, trim=2150, reversed=True),
             "AILERON_SB": CubeOrangeServo(SERVO.AILERON_SB.value, 950, 2150, AileronSBPwm, AileronSBAngle, trim=1400, reversed=True),
-            "FLAP_SB": CubeOrangeServo(SERVO.FLAP_SB.value, 1700, 2300, FlapSBPwm, FlapSBAngle, trim=1700),
+            "FLAP_SB": CubeOrangeServo(SERVO.FLAP_SB.value, 1700, 2300, FlapSBPwm, FlapSBAngle, trim=1508),
             "ELEV": CubeOrangeServo(SERVO.ELEV.value, 1050, 2000, ElevPwm, ElevAngle, trim=1550, reversed=True),
-            "RUDDER": CubeOrangeServo(SERVO.RUDDER.value, 650, 1600, RudderPwm, RudderAngle, trim=1050, reversed=True)
+            "RUDDER": CubeOrangeServo(SERVO.RUDDER.value, 450, 1800, RudderPwm, RudderAngle, trim=1200, reversed=True)
         }
 
     
