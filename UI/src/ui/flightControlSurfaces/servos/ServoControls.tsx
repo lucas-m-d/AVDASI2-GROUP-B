@@ -44,6 +44,7 @@ export default function ServoControls(){
                         alignItems: "center",
                     }}
             >
+                {/* Elevator */}
                 <Stack spacing={2} direction="row">
                             <NumberInput 
                             min={-30} 
@@ -53,10 +54,11 @@ export default function ServoControls(){
                             />
                             <Button variant="contained" onClick={handleSendCustomElevator}>ELEV</Button>
                 </Stack>
+                {/* Rudder */}
                 <Stack spacing={2} direction="row">
                             <NumberInput 
-                            min={-30} 
-                            max={30}
+                            min={-40} 
+                            max={40}
                             value={commandedRudder}
                             onChange={(_, val) => (setCommandedRudder(Number(val)))}
                             />
@@ -74,6 +76,7 @@ export default function ServoControls(){
                         alignItems: "center",
                     }}
             >
+                {/* Ail Left */}
                 <Stack spacing={2} direction="row">
                             <NumberInput 
                             min={-30} 
@@ -83,6 +86,7 @@ export default function ServoControls(){
                             />
                             <Button variant="contained" onClick={handleSendCustomAilLeft}>AIL L</Button>
                 </Stack>
+                {/* Ail Right */}
                 <Stack spacing={2} direction="row">
                     <NumberInput 
                         min={-30} 
@@ -91,9 +95,11 @@ export default function ServoControls(){
                         onChange={(_, val) => (setCommandedAileronRight(Number(val)))}
                     />
                     <Button variant="contained" onClick={handleSendCustomAilRight}>AIL R</Button>
-                </Stack>
-                
+                </Stack>                
             </Stack>
+            <div>
+                    To edit min and max values: go to ui/flightControlSurfaces/servos/ServoControls.tsx
+            </div>
         </div>
     )
 }
