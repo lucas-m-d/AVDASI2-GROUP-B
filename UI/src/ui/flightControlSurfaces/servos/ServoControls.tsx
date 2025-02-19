@@ -47,8 +47,8 @@ export default function ServoControls(){
                 {/* Elevator */}
                 <Stack spacing={2} direction="row">
                             <NumberInput 
-                            min={-30} 
-                            max={30}
+                            min={-40} 
+                            max={40}
                             value={commandedElevator}
                             onChange={(_, val) => (setCommandedElevator(Number(val)))}
                             />
