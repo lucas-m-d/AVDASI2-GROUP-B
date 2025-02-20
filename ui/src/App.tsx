@@ -22,7 +22,7 @@ export default function App() {
     const [socketState, setSocketState] = useState(false); // Default to false, to handle unconnected state
     const [, forceUpdate] = useState(0)
     useEffect(() => {
-        // Establish WebSocket connection
+        // Establish WebSocket connection to tms
         connectWebSocket("ws://localhost:8001");
         
 
@@ -87,7 +87,7 @@ export default function App() {
             <Grid size={1.75} component="div">
                 <RCModeControls mode={latestData.mode} />
                 <div style={{ marginTop: "20px" }}>
-                <FlightControlIndicators ailL={latestData.servoAileronL} ailR={25} elev={latestData.servoElevator} rud={latestData.servoRudder}/>
+                <FlightControlIndicators ailL={latestData.servoAileronL} ailR={latestData.servoAileronR} elev={latestData.servoElevator} rud={latestData.servoRudder}/>
                 </div>
             </Grid>
 
