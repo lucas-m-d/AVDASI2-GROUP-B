@@ -30,7 +30,7 @@ const flapSettings: flapPosition[] = [
         label:"LDG"
     },
     {
-        value:45,
+        value:30,
         label:"FULL"
     }
 ]
