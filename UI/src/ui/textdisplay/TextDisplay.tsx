@@ -31,7 +31,7 @@ export default function TextDisplay ({textArray}:TextDisplayProps) {
             
             
             {
-                testingText.map((text) => (
+                textArray && textArray.map((text) => (
                     <Typography variant="body1" style={{
                         padding:"2px",
                         paddingLeft:"5px"

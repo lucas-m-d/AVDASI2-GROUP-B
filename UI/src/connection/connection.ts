@@ -17,7 +17,7 @@ export type DroneData = {
     errorMessages: Array<string | undefined>;
     currentTime: number;
     safety: boolean | undefined;
-    text:Array<string>
+    text:string[];
 
 };
 
@@ -31,10 +31,12 @@ export const clearData = () => {
 }
 
 const connectWebSocket = (url: string) => {
+    
     socket = new WebSocket(url);
     
     socket.onopen = () => {
         console.log("WebSocket connected");
+        latestData.text = []
     };
 
     socket.onmessage = ({ data }: MessageEvent) => {
