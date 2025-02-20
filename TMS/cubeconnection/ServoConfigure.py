@@ -105,7 +105,7 @@ class ServoConfiguration():
             "FLAP_PORT": CubeOrangeServo(SERVO.FLAP_PORT.value, 1500, 2150, FlapPortPwm, FlapPortAngle, trim=2150, reversed=True),
             "AILERON_SB": CubeOrangeServo(SERVO.AILERON_SB.value, 950, 2150, AileronSBPwm, AileronSBAngle, trim=1400, reversed=True),
             "FLAP_SB": CubeOrangeServo(SERVO.FLAP_SB.value, 1700, 2300, FlapSBPwm, FlapSBAngle, trim=1508),
-            "ELEV": CubeOrangeServo(SERVO.ELEV.value, 1050, 2000, ElevPwm, ElevAngle, trim=1550, reversed=True),
+            "ELEV": CubeOrangeServo(SERVO.ELEV.value, 1050, 2000, ElevPwm, ElevAngle, trim=1550, reversed=False),
             "RUDDER": CubeOrangeServo(SERVO.RUDDER.value, 650, 1800, RudderPwm, RudderAngle, trim=1200, reversed=True)
         }
 
