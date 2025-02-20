@@ -351,6 +351,18 @@ class CubeConnection:
 
                     except Exception as E:
                         print(E)
+                
+                case "STATUSTEXT":
+                    try:
+                        msg = {
+                            "type":"STATUSTEXT",
+                            "text":data["text"]
+                        }
+                        print(data["text"])
+
+                    except Exception as E:
+                        print(E)
+
                 case "RC_CHANNELS_RAW":
                     try:
                         continue

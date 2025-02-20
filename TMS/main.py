@@ -5,7 +5,7 @@ from cubeconnection.CubeConnection import CubeConnection
 
 PORT = 8001
 CONSTR = 'udp:0.0.0.0:14550' # use this for UDP connection
-#CONSTR = 'com6'
+#CONSTR = 'com8'
 
 
 
