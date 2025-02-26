@@ -1,0 +1,21 @@
+export const ServoMinMax = {
+    FLAP_SB_MIN:0,
+    FLAP_SB_MAX: 30,
+
+    FLAP_PORT_MIN:0,
+    FLAP_PORT_MAX:30,
+    
+    AILERON_SB_MIN:-30,
+    AILERON_SB_MAX:30,
+
+    AILERON_PORT_MIN:-30,
+    AILERON_PORT_MAX:30,
+
+    ELEVATOR_MIN:-40,
+    ELEVATOR_MAX:40,
+
+    RUDDER_MIN:-40,
+    RUDDER_MAX:40
+
+
+}

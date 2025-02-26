@@ -30,33 +30,33 @@ export default function HorizontalIndicator ({min, max, current, id, width, heig
         if (canvas){
             const context = canvas?.getContext("2d")
             if (context) {
-                var canvasWidth = document.getElementById(id)!.getBoundingClientRect().width;
-
+                
                 context.clearRect(0, 0, canvas.width, canvas.height);
 
                 context.fillStyle = HorizontalIndicatorStyle.backgroundColor
 
-                context.fillRect(0,0,canvasWidth!, height!) // fill background
+                context.fillRect(0,0,canvas.width, height!) // fill background
 
                 
                 if (current) {
                     // start in the middle
                     const percentFull = current / (max - min);
                     context.fillStyle = HorizontalIndicatorStyle.positionColor
-                    context.fillRect(canvasWidth!/2, 0, percentFull*canvasWidth!, height!) // draw current position rectangle
+                    
+                    context.fillRect(canvas.width/2, 0, (percentFull < 1 ? percentFull : 1)*canvas.width, height!) // draw current position rectangle
                     // draw text in middle
                     context.textAlign = "center";
                     context.textBaseline = "middle"
                     context.fillStyle = HorizontalIndicatorStyle.textColor
                     context.font = HorizontalIndicatorStyle.font
-                    context.fillText(current.toString(), canvasWidth!/2, height!/2, 100)
+                    context.fillText(current.toString(), canvas.width!/2, height!/2, 100)
                 } else {
                     context.strokeStyle= HorizontalIndicatorStyle.undefinedColor
                     context.lineWidth = HorizontalIndicatorStyle.lineWidth
                     // draw a cross
                     context.moveTo(0,0)
-                    context.lineTo(canvasWidth, height!)
-                    context.moveTo(canvasWidth, 0)
+                    context.lineTo(canvas.width, height!)
+                    context.moveTo(canvas.width, 0)
                     context.lineTo(0, height!)
 
                     context.stroke()

@@ -5,6 +5,7 @@ import { NumberInput } from '../shared/numberInput';
 import { Typography } from '@mui/material';
 import { Servo } from '../shared/servo';
 import sendServoRequest from '../../../connection/request/sendServoRequest';
+import { ServoMinMax } from "../../../servoMinMax"
 
 export default function ServoControls(){
     const [commandedElevator, setCommandedElevator] = useState<number | undefined>(0)
@@ -79,8 +80,8 @@ export default function ServoControls(){
                 {/* Ail Left */}
                 <Stack spacing={2} direction="row">
                             <NumberInput 
-                            min={-30} 
-                            max={30}
+                            min={ServoMinMax.AILERON_PORT_MIN} 
+                            max={ServoMinMax.AILERON_PORT_MAX}
                             value={commandedAileronLeft}
                             onChange={(_, val) => (setCommandedAileronLeft(Number(val)))}
                             />
@@ -89,8 +90,8 @@ export default function ServoControls(){
                 {/* Ail Right */}
                 <Stack spacing={2} direction="row">
                     <NumberInput 
-                        min={-30} 
-                        max={30}
+                        min={ServoMinMax.AILERON_SB_MIN} 
+                        max={ServoMinMax.AILERON_SB_MAX}
                         value={commandedAileronRight}
                         onChange={(_, val) => (setCommandedAileronRight(Number(val)))}
                     />

@@ -76,6 +76,8 @@ export default function FlapIndicator({min, max, request, position}:flapIndicato
                     context.fillRect(xPositions[4],0, indicatorWidths[4], indicatorHeight*position[1]!/max)
                 }
 
+                
+
                 // requested
                 context.fillStyle=FlapIndicatorStyle.requestColor
                 context.fillRect(xPositions[2],0, indicatorWidths[2], indicatorHeight*request!/max)
