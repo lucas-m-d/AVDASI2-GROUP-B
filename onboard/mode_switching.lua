@@ -28,7 +28,7 @@
 -- disable an error message - kept this from the example that this was built on, not sure if it's needed.
 
 
-local servoFunctions = {4, 2, 0, 21, 19, 0, 2, 4}-- servo{n}'s function.  
+local servoFunctions = {4, 2, 0, 21, 19, 0, 3, 8}-- servo{n}'s function.  
 
 -- global definitions
 local MAV_SEVERITY = {EMERGENCY=0, ALERT=1, CRITICAL=2, ERROR=3, WARNING=4, NOTICE=5, INFO=6, DEBUG=7} -- you can redefine MAVLINK error codes, these are defaults

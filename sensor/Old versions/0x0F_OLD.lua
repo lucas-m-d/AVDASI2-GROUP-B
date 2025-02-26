@@ -10,14 +10,14 @@
 
 -- Here I set up the I2C variables: ADDR is the I2C serial address of the sensor itself, REG_ADDR is the registry address of the angle registry 
 
-local ADDR = 0x0D   -- 0x0D, 0x0E or 0x0F depending on hardware configuration
+local ADDR = 0x0F   -- 0x0D, 0x0E or 0x0F depending on hardware configuration
 local REG_ADDR = 0x20
 local bus = 0   -- = 0 for I2C2 port on the carrier board
 
 
 -- Here I designate the file path and create a variable that the script will later use as the file
 
-local file_path = "/APM/LOGS/A1335_log_D.csv" -- This way it will be on the SD card, in the logs folder
+local file_path = "/APM/LOGS/A1335_log_F.csv" -- This way it will be on the SD card, in the logs folder
 local file
 
 
@@ -27,11 +27,9 @@ local file
 local SCR_U1 = Parameter() -- Will control measurement toggle
 local SCR_U2 = Parameter() -- Will control logging toggle
 local Zero = Parameter() -- Will control zeroing
-local LOG = Parameter() -- Helps log naming
 SCR_U1:init('SCR_USER1')
 SCR_U2:init('SCR_USER2')
 Zero:init('SCR_USER3')
-LOG:init('SCR_USER4')
 -- The lines above make the updating of the parameters easier. Generally you could just look up the value of the parameter with a single line of code,
 -- but that way the cube will search through the whole parameter list fully. This way, by initialising two Parameter type variables, the script saves the 
 -- location of the parameter and makes subsequnet lookups really efficient. SCR_U1 and SCR_U2 do not contain the value of the parameter, but the parameter itself.
@@ -45,18 +43,6 @@ local is_measuring = false
 
 Zero:set_default(0.0)
 Zero:set_and_save(0.0)
-
-local log_var = LOG:get()
-
-if type(log_var) ~= number then
-    gcs:send_text(6, "LOG param not float, type: " .. tostring(type(log_var)))
-    log_var = 2000
-end
-
-log_var = log_var + 1
-LOG:set_and_save(log_var)
-
-file_path = "/APM/LOGS/sensor_log_starboard_" .. tostring(log_var) .. ".csv"
 ----------------------------------------------
 ----------------------------------------------
 
@@ -65,7 +51,7 @@ sensor:set_address(ADDR)    -- Technically you don't need to do this, but it hel
 
 local zero_offset = 0
 ----------------------------------------------
-file = io.open(file_path, "a")  -- Opening the file in write mode and closing it immediately just to erase previous measurements. Might remove this, not sure yet
+file = io.open(file_path, "w")  -- Opening the file in write mode and closing it immediately just to erase previous measurements. Might remove this, not sure yet
 file:close()
 ----------------------------------------------
 
