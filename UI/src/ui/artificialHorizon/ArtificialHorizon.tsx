@@ -168,7 +168,7 @@ export default function ArtificialHorizon ({roll, pitch}:ArtificialHorizonProps)
             )}
             
             {pitch !== undefined ? (
-                <p>Pitch: {pitch!.toFixed(2)} deg</p>
+                <p>Pitch: {(pitch! * 180 / Math.PI).toFixed(2)} deg</p>
             ) : (
                 <p>No pitch data available</p>
         )}
