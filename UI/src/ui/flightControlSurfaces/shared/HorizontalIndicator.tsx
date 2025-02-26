@@ -12,8 +12,8 @@ interface HorizontalIndicatorProps{
 const HorizontalIndicatorStyle = {
     backgroundColor: "#E0E0E0",
     undefinedColor: "yellow",
-    positionColor:"#00FF00",
-    textColor: "pink",
+    positionColor:"red",
+    textColor: "black",
     font: "175% sans-serif",
     lineWidth: 4
 

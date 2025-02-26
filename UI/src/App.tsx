@@ -16,7 +16,7 @@ import { ServoMinMax } from "./servoMinMax"
 const ArtificialHorizonMemoised = memo(ArtificialHorizon)
 const FlapControlMemoised = memo(FlapControl)
 
-const dataRefreshMS = 1000 / 5; // Refresh page 10 times a second
+const dataRefreshMS = 1000 / 5; // Refresh page 5 times a second
 const socketRefreshMS = 1000 / 2; // Refresh twice a second
 
 export default function App() {
@@ -57,9 +57,9 @@ export default function App() {
         clearData()
     }, []) 
 
-    useEffect(() => {
-        console.log("reloading")
-    })
+    // useEffect(() => {
+    //     console.log("reloading")
+    // })
 
     return (
         <div>
@@ -68,7 +68,7 @@ export default function App() {
             {/* WebSocket status display */}
             <Grid size={12}>
                 <div>
-                    WebSocket status = {socketState ? "connected" : "disconnected"}
+                    TMS: {socketState ? "connected" : "disconnected"}
                     {!socketState && (
                             <p>If UI is disconnected but TMS has a connection, please refresh the page.</p>
                     )}

@@ -72,6 +72,8 @@ export const LivePlotMemoized = memo(function LivePlot() {
         };
     }, []);
 
+    
+
     const livePlotTickFormatter = (t) => `${Math.floor(t / 60000)}m ${Math.round((t % 60000) / 1000)}s`;
     const yTickFormatter = (t) => `${Math.round(t)}`
 
@@ -94,10 +96,10 @@ export const LivePlotMemoized = memo(function LivePlot() {
             <div style={livePlotRowStyle}>
                 <div style={{ display: "flex", gap: "20px" }}>
                     {/* Assuming we don't need a domain to be above 90 for pitch */}
-                    <LivePlotChartElement data={pitchData} dataKey="pitch_deg" yDomain={[-45, 45]} />  
-                    <LivePlotChartElement data={rollData} dataKey="roll_deg" yDomain={[-45, 45]} />
+                    <LivePlotChartElement data={pitchData} dataKey="pitch_deg" yDomain={[-30, 30]} />  
+                    <LivePlotChartElement data={rollData} dataKey="roll_deg" yDomain={[-30, 30]}/>
                     <LivePlotChartElement data={yawData} dataKey="yaw_deg" /> 
-                    <LivePlotChartElement data={flapData} dataKey="flapPosition" yDomain={[0, 45]} />
+                    <LivePlotChartElement data={flapData} dataKey="flapPosition" yDomain={[0, ServoMinMax.FLAP_PORT_MAX]} />
                 </div>
             </div>
             <div style={livePlotRowStyle}>

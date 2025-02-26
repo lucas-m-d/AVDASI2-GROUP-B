@@ -77,14 +77,18 @@ const connectWebSocket = (url: string) => {
                 break;
 
             case "FLAP_SENSOR":
-                latestData.flapSensorPosition = newData.flapSensorPosition;
+                if (newData.flapSensorPosition > 300) {
+                    latestData.flapSensorPosition = newData.flapSensorPosition - 360
+                } else {
+                    latestData.flapSensorPosition = newData.flapSensorPosition;
+                }
                 break;
             
             case "STATUSTEXT":
                 latestData.text = [newData.text, ...latestData.text] // place at start
                 var textDataLength = latestData.text.length
                 if (textDataLength > 50) {
-                    latestData.text.splice(49, textDataLength-50)
+                    latestData.text.splice(45) // remove last 5 elements
                 }
 
                 break
