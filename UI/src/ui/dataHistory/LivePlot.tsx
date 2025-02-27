@@ -85,7 +85,7 @@ export const LivePlotMemoized = memo(function LivePlot() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="time" tickFormatter={livePlotTickFormatter}  />
                 <YAxis name={props.dataKey} domain={props.yDomain ? props.yDomain : ['auto', 'auto']} scale={props.log ? "log" : "auto" } unit="&deg;" tickFormatter={yTickFormatter}/>
-                <Line dataKey="value" stroke="red" name={props.dataKey} isAnimationActive={false}  dot={false}/>
+                <Line type="step" dataKey="value" stroke="red" name={props.dataKey} isAnimationActive={false}  dot={false}/>
                 <Legend />
             </LineChart>
         </ResponsiveContainer>

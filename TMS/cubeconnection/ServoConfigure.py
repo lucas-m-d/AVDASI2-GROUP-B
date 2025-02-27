@@ -101,7 +101,7 @@ class ServoConfiguration():
         self.servos_written = False
         
         self.servos: dict[str, type[CubeOrangeServo]] = { ## will need to double/triple check these! trim is the position it should be when at 0 - I assume....
-            "AILERON_PORT": CubeOrangeServo(SERVO.AILERON_PORT.value, 950, 2150, AileronPortPwm, AileronPortAngle, trim=1550, reversed=True),
+            "AILERON_PORT": CubeOrangeServo(SERVO.AILERON_PORT.value, 950, 2150, AileronPortPwm, AileronPortAngle, trim=1550),
             "FLAP_PORT": CubeOrangeServo(SERVO.FLAP_PORT.value, 1500, 2150, FlapPortPwm, FlapPortAngle, trim=2150, reversed=True),
             "AILERON_SB": CubeOrangeServo(SERVO.AILERON_SB.value, 950, 2150, AileronSBPwm, AileronSBAngle, trim=1400, reversed=True),
             "FLAP_SB": CubeOrangeServo(SERVO.FLAP_SB.value, 1700, 2300, FlapSBPwm, FlapSBAngle, trim=1508),
