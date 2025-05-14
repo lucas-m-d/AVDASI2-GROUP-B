@@ -1,37 +1,21 @@
-#Example code to connect to CubePilot throuogh wifi and listen for messages
-#Written by: Ethan Sheehan
+# cube_connection.py
 
+import asyncio
+from pymavlink import mavutil
 
+def connect_to_cube():
+    print("Connecting to CubePilot...")
+    mav = mavutil.mavlink_connection('udp:0.0.0.0:14550')
+    return mav
 
-import asyncio #runs asyncronous tasks
-from pymavlink import mavutil #Mavlink library for communication with CubePilot
-
-# Connect to CubePilot
-mav = mavutil.mavlink_connection('udp:0.0.0.0:14550')
-
-#Wait for heartbeat from cube
-async def wait_heartbeat():
+async def wait_heartbeat(mav):
     print("Waiting for heartbeat...")
     mav.wait_heartbeat()
-    print(f"Heartbeat received from system {mav.target_system}, component {mav.target_component}") #Print when heartbeat is received
+    print(f"Heartbeat received from system {mav.target_system}, component {mav.target_component}")
 
-#Listen for messages from cube
-async def listen_messages(): 
+async def listen_messages(mav): 
     while True:
-        msg = mav.recv_match(type=['SYS_STATUS']) #Defiine message type
+        msg = mav.recv_match(type=['SYS_STATUS'])
         if msg:
-            print(f"Received: {msg.get_type()} - {msg.to_dict()}") #Print message
-        await asyncio.sleep(5) #Wait 5 seconds
-
-async def main():
-    await wait_heartbeat()
-
-    # Start listening to messages
-    asyncio.create_task(listen_messages())
-
-    # Keep running to listen to messages
-    while True:
-        await asyncio.sleep(1)
-
-if __name__ == "__main__":
-    asyncio.run(main())
+            print(f"Received: {msg.get_type()} - {msg.to_dict()}")
+        await asyncio.sleep(5)
