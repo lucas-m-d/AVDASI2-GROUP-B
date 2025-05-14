@@ -9,11 +9,6 @@ from UI_example import ServoUI
 
 # Async setup for MAVLink connection and message listening
 async def setup_mav():
-    print("Connecting to CubePilot...")
-    mav = connect_to_cube()
-    print("Waiting for heartbeat...")
-    await wait_heartbeat(mav)
-    print("Heartbeat received.")
 
     servo_config = ServoController(mav)
 
