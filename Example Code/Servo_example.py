@@ -1,9 +1,13 @@
 from pymavlink import mavutil
+import asyncio
 
 AILERON_PIN = 8
 
-def angle_to_pwm(angle): return -19 * angle + 1550
-def mav_bytes(string): return bytes(string, 'utf-8')
+def angle_to_pwm(angle):
+    return -19 * angle + 1550
+
+def mav_bytes(string):
+    return bytes(string, 'utf-8')
 
 class Servo:
     def __init__(self, pin, min_pwm=950, max_pwm=2150, trim=1550, reversed=False):
@@ -13,14 +17,16 @@ class Servo:
         self.trim = trim
         self.reversed = reversed
 
-    def angle_to_pwm(self, angle): return angle_to_pwm(angle)
+    def angle_to_pwm(self, angle):
+        return angle_to_pwm(angle)
 
 class ServoController:
     def __init__(self, mav):
         self.mav = mav
         self.servo = Servo(pin=AILERON_PIN)
 
-    def set_params(self):
+    def write_servo_params(self):
+        """Sets the servo parameters for the connected MAVLink system."""
         print("Setting aileron params...")
         for key, val in {
             "MAX": self.servo.max,
@@ -37,10 +43,11 @@ class ServoController:
             )
         print("Done.")
 
-    def send_angle(self, angle):
+    async def send_angle(self, angle):
+        """Asynchronously sends the angle command to the servo."""
         pwm = self.servo.angle_to_pwm(angle)
         print(f"Angle {angle}° → PWM {pwm}")
-        self.mav.mav.command_long_send(
+        await self.mav.mav.command_long_send(
             self.mav.target_system,
             self.mav.target_component,
             mavutil.mavlink.MAV_CMD_DO_SET_SERVO,
