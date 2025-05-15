@@ -39,6 +39,14 @@ class ServoUI:
         )
         self.arming_button.grid(row=4, column=0, columnspan=2, pady=5)
 
+        # Arming status label
+        self.arming_status_label = ttk.Label(
+            root,
+            text="DISARMED - NO LOGGING",
+            background="red",
+            foreground="white"
+        )
+        self.arming_status_label.grid(row=5, column=0, columnspan=2, pady=5)
 
         self.update_status()
 
