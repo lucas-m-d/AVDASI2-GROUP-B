@@ -39,13 +39,6 @@ class ServoUI:
         )
         self.arming_button.grid(row=4, column=0, columnspan=2, pady=5)
 
-        self.arming_status_label = ttk.Label(
-            root,
-            text="DISARMED - NO LOGGING",
-            background="red",
-            foreground="white"
-        )
-        self.arming_status_label.grid(row=5, column=0, columnspan=2, pady=5)
 
         self.update_status()
 
@@ -96,5 +89,13 @@ class ServoUI:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    servo_ui = ServoUI(root)
+    servo_config = None
+    try:
+        # Attempt to connect to the servo controller if needed
+        servo_config = Servo_example.ServoController()  # Adjust class name if needed
+    except Exception as e:
+        messagebox.showwarning("Connection Error", f"Could not connect to servo: {e}")
+        servo_config = None
+
+    servo_ui = ServoUI(root, servo_config)
     root.mainloop()

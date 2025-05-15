@@ -30,3 +30,16 @@ def toggle_arming_switch(mav, arm):
     except Exception as e:
         print(f"Error toggling arming switch: {e}")
         return False
+
+if __name__ == "__main__":
+    # Example usage
+    # Connect to the MAVLink vehicle (UDP endpoint as example)
+    mav = mavutil.mavlink_connection('udp:127.0.0.1:14550')
+    mav.wait_heartbeat()
+    print("Heartbeat from system (system %u component %u)" % (mav.target_system, mav.target_component))
+
+    # Toggle safety switch ON
+    toggle_safety_switch(mav, enable=True)
+
+    # Arm the vehicle
+    toggle_arming_switch(mav, arm=True)
