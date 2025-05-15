@@ -1,44 +1,28 @@
-import asyncio
-import threading
 import tkinter as tk
 
-from GS_example import connect_to_cube, wait_heartbeat, listen_messages
-from Servo_example import ServoController
-from UI_example import ServoUI
+import GS_example
+import Servo_example
+import UI_example
 
-
-# Async setup for MAVLink connection and message listening
-async def setup_mav():
-
-    servo_config = ServoController(mav)
-
-    asyncio.create_task(listen_messages(mav))
+def setup_mav():
+    mav = GS_example.connect_to_cube()
+    if mav is None:
+        # No connection, return None
+        return None
+    GS_example.wait_heartbeat(mav)
+    servo_config = Servo_example.ServoController(mav)
+    servo_config.write_servo_params()
     return servo_config
 
-
-def start_asyncio_loop(loop):
-    asyncio.set_event_loop(loop)
-    loop.run_forever()
-
-
 def main():
-    loop = asyncio.new_event_loop()
-
-    # Start asyncio loop in background
-    threading.Thread(target=start_asyncio_loop, args=(loop,), daemon=True).start()
-
     # Start Tkinter in main thread
     root = tk.Tk()
-    app = ServoUI(root, loop)  # Pass loop as expected
 
-    # Set up MAV and assign servo config after connection
-    async def init():
-        servo_config = await setup_mav()
-        app.set_servo_controller(servo_config)
+    # Set up MAV and assign servo config (may be None)
+    servo_config = setup_mav()
+    app = UI_example.ServoUI(root, servo_config)  # Pass servo_config (can be None)
 
-    asyncio.run_coroutine_threadsafe(init(), loop)
     root.mainloop()
-
 
 if __name__ == "__main__":
     main()

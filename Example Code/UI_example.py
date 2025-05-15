@@ -1,18 +1,16 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-import threading
-import asyncio
-from pymavlink import mavutil
-from Servo_example import ServoController, Servo
+import Servo_example
+import GS_example
+import Arm_example
 
 class ServoUI:
-    def __init__(self, root, loop, servo_config=None):
+    def __init__(self, root, servo_config=None):
         self.root = root
         self.root.title("Servo Control")
-        self.loop = loop  # <- Add loop for async execution
-        self.status_var = tk.StringVar(value="Disconnected")
-        self.connection = None
-        self.servo_config = servo_config  # Can be passed externally or created via Connect button
+        self.servo_config = servo_config
+
+        self.status_var = tk.StringVar(value=GS_example.connection_status.capitalize())
 
         ttk.Label(root, text="Status:").grid(row=0, column=0)
         ttk.Label(root, textvariable=self.status_var, foreground="red").grid(row=0, column=1)
@@ -22,19 +20,70 @@ class ServoUI:
         self.angle_entry.grid(row=1, column=1)
 
         ttk.Button(root, text="Send", command=self.send_angle).grid(row=2, column=0, columnspan=2, pady=5)
-        ttk.Button(root, text="Connect", command=self.connect).grid(row=3, column=0, columnspan=2)
 
-    def connect(self):
-        def task():
-            try:
-                self.connection = mavutil.mavlink_connection('udp:0.0.0.0:14550')
-                self.connection.wait_heartbeat()
-                self.servo_config = ServoController(self.connection)
-                self.status_var.set("Connected")
-            except Exception as e:
-                self.status_var.set("Failed")
-                messagebox.showerror("Connection Error", str(e))
-        threading.Thread(target=task, daemon=True).start()
+        # Safety switch button
+        self.safety_enabled = True
+        self.safety_button = ttk.Button(
+            root,
+            text="Safety Enabled (Click to toggle)",
+            command=self.toggle_safety
+        )
+        self.safety_button.grid(row=3, column=0, columnspan=2, pady=5)
+
+        # Arming switch button
+        self.armed = False
+        self.arming_button = ttk.Button(
+            root,
+            text="Arming Disabled (Click to toggle)",
+            command=self.toggle_arming
+        )
+        self.arming_button.grid(row=4, column=0, columnspan=2, pady=5)
+
+        # Arming status label
+        self.arming_status_label = ttk.Label(
+            root,
+            text="DISARMED - NO LOGGING",
+            background="red",
+            foreground="white"
+        )
+        self.arming_status_label.grid(row=5, column=0, columnspan=2, pady=5)
+
+        self.update_status()
+
+    def toggle_safety(self):
+        if not self.servo_config:
+            messagebox.showwarning("Not connected", "Connect first.")
+            return
+        mav = self.servo_config.mav
+        self.safety_enabled = not self.safety_enabled
+        success = Arm_example.toggle_safety_switch(mav, self.safety_enabled)
+        if success:
+            if self.safety_enabled:
+                self.safety_button.config(text="Safety Enabled (Click to toggle)", style="TButton")
+            else:
+                self.safety_button.config(text="Safety Disabled (Click to toggle)", style="TButton")
+
+    def toggle_arming(self):
+        if not self.servo_config:
+            messagebox.showwarning("Not connected", "Connect first.")
+            return
+        mav = self.servo_config.mav
+        self.armed = not self.armed
+        success = Arm_example.toggle_arming_switch(mav, self.armed)
+        if success:
+            if self.armed:
+                self.arming_button.config(text="Arming Enabled (Click to toggle)")
+                self.arming_status_label.config(text="ARMED AND LOGGING", background="green", foreground="white")
+            else:
+                self.arming_button.config(text="Arming Disabled (Click to toggle)")
+                self.arming_status_label.config(text="DISARMED - NO LOGGING", background="red", foreground="white")
+
+    def update_status(self):
+        self.status_var.set(GS_example.connection_status.capitalize())
+        self.root.after(1000, self.update_status)
+
+    def set_servo_controller(self, servo_config):
+        self.servo_config = servo_config
 
     def send_angle(self):
         if not self.servo_config:
@@ -42,10 +91,19 @@ class ServoUI:
             return
         try:
             angle = float(self.angle_entry.get())
-            # Properly run the coroutine
-            asyncio.run_coroutine_threadsafe(
-                self.servo_config.send_angle(angle),
-                self.loop
-            )
+            self.servo_config.send_angle(angle)
         except Exception as e:
             messagebox.showerror("Send Error", str(e))
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    servo_config = None
+    try:
+        # Attempt to connect to the servo controller if needed
+        servo_config = Servo_example.ServoController()  # Adjust class name if needed
+    except Exception as e:
+        messagebox.showwarning("Connection Error", f"Could not connect to servo: {e}")
+        servo_config = None
+
+    servo_ui = ServoUI(root, servo_config)
+    root.mainloop()

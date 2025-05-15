@@ -1,7 +1,7 @@
 from pymavlink import mavutil
-import asyncio
 
-AILERON_PIN = 8
+
+PIN = 8
 
 def angle_to_pwm(angle):
     return -19 * angle + 1550
@@ -23,7 +23,7 @@ class Servo:
 class ServoController:
     def __init__(self, mav):
         self.mav = mav
-        self.servo = Servo(pin=AILERON_PIN)
+        self.servo = Servo(pin=PIN)
 
     def write_servo_params(self):
         """Sets the servo parameters for the connected MAVLink system."""
@@ -43,13 +43,25 @@ class ServoController:
             )
         print("Done.")
 
-    async def send_angle(self, angle):
-        """Asynchronously sends the angle command to the servo."""
+    def send_angle(self, angle):
+        """Sends the angle command to the servo."""
         pwm = self.servo.angle_to_pwm(angle)
         print(f"Angle {angle}° → PWM {pwm}")
-        await self.mav.mav.command_long_send(
+        self.mav.mav.command_long_send(
             self.mav.target_system,
             self.mav.target_component,
             mavutil.mavlink.MAV_CMD_DO_SET_SERVO,
             0, self.servo.pin, pwm, 0, 0, 0, 0, 0
         )
+
+if __name__ == "__main__":
+    # Example usage: connect to MAVLink and control the servo
+    mav = mavutil.mavlink_connection('udp:127.0.0.1:14550')  # Adjust as needed
+    mav.wait_heartbeat()
+    print("Heartbeat received from system (system %u component %u)" % (mav.target_system, mav.target_component))
+
+    controller = ServoController(mav)
+    controller.write_servo_params()
+
+    # Example: Move servo to 30 degrees
+    controller.send_angle(30)
