@@ -25,7 +25,7 @@ class ServoUI:
         self.safety_enabled = True
         self.safety_button = ttk.Button(
             root,
-            text="Safety Enabled (Click to toggle)",
+            text="Safety Enabled (Click to toggle)" if self.safety_enabled else "Safety Disabled (Click to toggle)",
             command=self.toggle_safety
         )
         self.safety_button.grid(row=3, column=0, columnspan=2, pady=5)
@@ -55,13 +55,17 @@ class ServoUI:
             messagebox.showwarning("Not connected", "Connect first.")
             return
         mav = self.servo_config.mav
-        self.safety_enabled = not self.safety_enabled
-        success = Arm_example.toggle_safety_switch(mav, self.safety_enabled)
+        # Toggle the state
+        new_state = not self.safety_enabled
+        success = Arm_example.toggle_safety_switch(mav, new_state)
         if success:
+            self.safety_enabled = new_state
             if self.safety_enabled:
-                self.safety_button.config(text="Safety Enabled (Click to toggle)", style="TButton")
+                self.safety_button.config(text="Safety Enabled (Click to toggle)")
             else:
-                self.safety_button.config(text="Safety Disabled (Click to toggle)", style="TButton")
+                self.safety_button.config(text="Safety Disabled (Click to toggle)")
+        else:
+            messagebox.showerror("Safety Switch", "Failed to toggle safety switch.")
 
     def toggle_arming(self):
         if not self.servo_config:

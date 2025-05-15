@@ -1,5 +1,8 @@
 from pymavlink import mavutil
 
+# Global variable to store the safety state
+safety_state = None
+
 def toggle_safety_switch(mav, enable):
     """
     Toggle the safety switch using set_mode_send and MAV_MODE_FLAG_DECODE_POSITION_SAFETY.
@@ -13,8 +16,10 @@ def toggle_safety_switch(mav, enable):
             1 if enable else 0
         )
         print(f"Safety {'Enabled' if enable else 'Disabled'}.")
+        return True
     except Exception as e:
         print(f"Error toggling safety switch: {e}")
+        return False
 
 def toggle_arming_switch(mav, arm):
     """Arm or disarm the vehicle."""
