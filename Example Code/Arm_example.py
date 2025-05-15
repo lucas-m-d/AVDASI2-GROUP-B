@@ -1,18 +1,20 @@
 from pymavlink import mavutil
 
 def toggle_safety_switch(mav, enable):
-    """Enable or disable safety switch (using MAV_CMD_DO_SET_MODE)."""
+    """
+    Toggle the safety switch using set_mode_send and MAV_MODE_FLAG_DECODE_POSITION_SAFETY.
+    enable=True: safety ON (SAFE)
+    enable=False: safety OFF (UNSAFE)
+    """
     try:
-        # This is a placeholder; actual safety switch control may require a different command
-        # Here we just set the mode as an example
-        mode = 'STABILIZE'  # or another mode as appropriate
-        mode_id = mav.mode_mapping()[mode] if hasattr(mav, 'mode_mapping') else 0
-        mav.set_mode(mode_id)
-        print(f"Safety {'Enabled' if enable else 'Disabled'} (mode set to {mode}).")
-        return True
+        mav.mav.set_mode_send(
+            mav.target_system,
+            mavutil.mavlink.MAV_MODE_FLAG_DECODE_POSITION_SAFETY,
+            1 if enable else 0
+        )
+        print(f"Safety {'Enabled' if enable else 'Disabled'}.")
     except Exception as e:
         print(f"Error toggling safety switch: {e}")
-        return False
 
 def toggle_arming_switch(mav, arm):
     """Arm or disarm the vehicle."""
@@ -33,7 +35,6 @@ def toggle_arming_switch(mav, arm):
 
 if __name__ == "__main__":
     # Example usage
-    # Connect to the MAVLink vehicle (UDP endpoint as example)
     mav = mavutil.mavlink_connection('udp:127.0.0.1:14550')
     mav.wait_heartbeat()
     print("Heartbeat from system (system %u component %u)" % (mav.target_system, mav.target_component))
