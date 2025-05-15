@@ -3,6 +3,7 @@
 -- Author: Mate Kadas
 
 -- This code is written to work with an A1335LLETR-T Magnetic Hall Effect Sensor
+-- You are NOT SUPPOSED TO COPY AND PASTE this, but are encouraged to use it as help in writing your own code
 --------------------------------------------------
 --------------------------------------------------
 
@@ -12,7 +13,7 @@
 local ADDR = 0x0C -- I2C address of the sensor
 local REG_ADDR = 0x20 -- Registry of the raw angle data
 
-local filepath = = "/APM/LOGS/A1335_log.csv" -- The Cube has a logs folder by default, this code will save a custom csv of the results there
+local filepath = "/APM/LOGS/A1335_log.csv" -- The Cube has a logs folder by default, this code will save a custom csv of the results there
 --------------------------------------------------
 --------------------------------------------------
 
