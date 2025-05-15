@@ -1,4 +1,3 @@
-
 from pymavlink import mavutil
 import time
 
@@ -21,7 +20,7 @@ def wait_heartbeat(mav):
 def listen_messages(mav): 
     global connection_status
     last_msg_time = time.time()
-    timeout = 10  # seconds to consider connection lost
+    timeout = 2  # seconds to consider connection lost
 
     while True:
         msg = mav.recv_match(type=['SYS_STATUS'], timeout=1)
@@ -35,8 +34,9 @@ def listen_messages(mav):
             if time.time() - last_msg_time > timeout:
                 if connection_status != "disconnected":
                     print("Connection lost. Status: disconnected")
+                    print("Heartbeat lost!")
                 connection_status = "disconnected"
-        time.sleep(1)
+        time.sleep(5)
 
 if __name__ == "__main__":
     mav = connect_to_cube()
